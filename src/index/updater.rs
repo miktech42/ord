@@ -192,8 +192,7 @@ impl Updater {
     let mut conn = Connection::connect(index.network, index.p2p_url.parse()?)
       .context("Failed to connect to P2P URL. Is listen=1 set in bitcoin.conf?")?;
 
-    // NB: We temporarily always fetch transactions, to avoid expensive cache misses.
-    let first_inscription_height = index.first_inscription_height.min(0);
+    let first_inscription_height = index.first_inscription_height;
 
     let mut hash = hash;
     thread::spawn(move || loop {
