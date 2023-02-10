@@ -7,6 +7,7 @@ use {
     updater::Updater,
   },
   super::*,
+  crate::index::rest::Rest,
   crate::wallet::Wallet,
   bitcoin::BlockHeader,
   bitcoincore_rpc::{json::GetBlockHeaderResult, Auth, Client},
@@ -19,6 +20,7 @@ use {
 };
 
 mod entry;
+mod rest;
 mod rtx;
 mod updater;
 
@@ -45,6 +47,7 @@ define_table! { WRITE_TRANSACTION_STARTING_BLOCK_COUNT_TO_TIMESTAMP, u64, u128 }
 pub(crate) struct Index {
   auth: Auth,
   client: Client,
+  rest_client: Option<Rest>,
   database: Database,
   path: PathBuf,
   first_inscription_height: u64,
@@ -144,6 +147,15 @@ impl Index {
 
     let client = Client::new(&rpc_url, auth.clone()).context("failed to connect to RPC URL")?;
 
+    let rest_client = Rest::new(rpc_url.split("/wallet").next().unwrap().to_string());
+    let rest_client = match rest_client.get_chain_info() {
+      Ok(_) => Some(rest_client),
+      Err(_) => {
+        log::warn!("Could not connect to REST endpoint, falling back to RPC");
+        None
+      }
+    };
+
     let data_dir = options.data_dir()?;
 
     if let Err(err) = fs::create_dir_all(&data_dir) {
@@ -233,6 +245,7 @@ impl Index {
       genesis_block_coinbase_txid: genesis_block_coinbase_transaction.txid(),
       auth,
       client,
+      rest_client,
       database,
       path,
       first_inscription_height: options.first_inscription_height(),
@@ -576,6 +589,8 @@ impl Index {
   pub(crate) fn get_transaction(&self, txid: Txid) -> Result<Option<Transaction>> {
     if txid == self.genesis_block_coinbase_txid {
       Ok(Some(self.genesis_block_coinbase_transaction.clone()))
+    } else if let Some(rest_client) = &self.rest_client {
+      rest_client.get_raw_transaction(&txid)
     } else {
       self.client.get_raw_transaction(&txid, None).into_option()
     }
