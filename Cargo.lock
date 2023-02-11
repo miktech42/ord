@@ -2192,6 +2192,7 @@ dependencies = [
  "miniscript",
  "mp4",
  "ord-bitcoincore-rpc",
+ "oxhttp",
  "pretty_assertions",
  "pulldown-cmark",
  "redb",
@@ -2252,6 +2253,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "628223faebab4e3e40667ee0b2336d34a5b960ff60ea743ddfdbcf7770bcfb66"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "oxhttp"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ac69fff1ca4ebc2cc35dfe858008ead4ecc0522ed7ef3781cfe9c976309713d"
+dependencies = [
+ "httparse",
+ "lazy_static",
+ "url",
 ]
 
 [[package]]
