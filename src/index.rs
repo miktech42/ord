@@ -21,11 +21,8 @@ use {
 };
 
 mod entry;
-<<<<<<< HEAD
 mod p2p;
-=======
 mod rest;
->>>>>>> rest
 mod rtx;
 mod updater;
 
