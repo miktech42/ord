@@ -16,6 +16,7 @@ pub(super) struct InscriptionUpdater<'a, 'db, 'tx> {
   height: u64,
   id_to_satpoint: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, &'static SatPointValue>,
   index: &'a Index,
+  rest: &'a mut Option<Rest>,
   id_to_entry: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, InscriptionEntryValue>,
   lost_sats: u64,
   next_number: u64,
@@ -33,6 +34,7 @@ impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
     height: u64,
     id_to_satpoint: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, &'static SatPointValue>,
     index: &'a Index,
+    rest: &'a mut Option<Rest>,
     id_to_entry: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, InscriptionEntryValue>,
     lost_sats: u64,
     number_to_id: &'a mut Table<'db, 'tx, u64, &'static InscriptionIdValue>,
@@ -54,6 +56,7 @@ impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
       height,
       id_to_satpoint,
       index,
+      rest,
       id_to_entry,
       lost_sats,
       next_number,
@@ -97,6 +100,17 @@ impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
           .remove(&tx_in.previous_output.store())?
         {
           value.value()
+        } else if let Some(rest) = self.rest {
+          rest
+            .get_raw_transaction(&tx_in.previous_output.txid)
+            .with_context(|| {
+              anyhow!(
+                "failed to get transaction for {}",
+                tx_in.previous_output.txid
+              )
+            })?
+            .output[usize::try_from(tx_in.previous_output.vout).unwrap()]
+          .value
         } else {
           self
             .index

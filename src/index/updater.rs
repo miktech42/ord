@@ -1,6 +1,6 @@
 use {
   self::inscription_updater::InscriptionUpdater,
-  super::{p2p::Connection, *},
+  super::{p2p::Connection, rest::Rest, *},
   bitcoin::hashes::Hash,
   std::sync::mpsc,
 };
@@ -107,6 +107,12 @@ impl Updater {
 
     let rx = Self::fetch_blocks_from(index, self.height, hash, self.index_sats)?;
 
+    let mut rest = Rest::new(&index.rpc_url);
+    let mut rest = match rest.get_block_hash(0) {
+      Ok(_) => Some(rest),
+      Err(_) => None,
+    };
+
     let mut uncommitted = 0;
     let mut value_cache = HashMap::new();
     loop {
@@ -119,7 +125,7 @@ impl Updater {
         Err(mpsc::RecvError) => break,
       };
 
-      self.index_block(index, &mut wtx, block, &mut value_cache)?;
+      self.index_block(index, &mut rest, &mut wtx, block, &mut value_cache)?;
 
       if let Some(progress_bar) = &mut progress_bar {
         progress_bar.inc(1);
@@ -289,6 +295,7 @@ impl Updater {
   fn index_block(
     &mut self,
     index: &Index,
+    rest: &mut Option<Rest>,
     wtx: &mut WriteTransaction,
     block: BlockData,
     value_cache: &mut HashMap<OutPoint, u64>,
@@ -327,6 +334,7 @@ impl Updater {
       self.height,
       &mut inscription_id_to_satpoint,
       index,
+      rest,
       &mut inscription_id_to_inscription_entry,
       lost_sats,
       &mut inscription_number_to_inscription_id,
