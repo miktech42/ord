@@ -23,7 +23,6 @@ mod entry;
 mod p2p;
 mod rest;
 mod rtx;
-mod simplehttp;
 mod updater;
 
 const SCHEMA_VERSION: u64 = 2;
