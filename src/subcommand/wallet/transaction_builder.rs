@@ -342,7 +342,7 @@ impl TransactionBuilder {
 
       if excess > max
         && value.checked_sub(target).unwrap()
-          > self
+          >= self
             .unused_change_addresses
             .last()
             .unwrap()
