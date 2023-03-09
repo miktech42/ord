@@ -52,14 +52,13 @@ fn inscriptions() {
 }
 
 #[test]
-fn inscriptions_includes_locked_utxos() {
+fn inscriptions_does_not_include_locked_utxos() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
   rpc_server.mine_blocks(1);
 
   let Inscribe {
-    inscription,
     reveal,
     ..
   } = inscribe(&rpc_server);
@@ -75,7 +74,5 @@ fn inscriptions_includes_locked_utxos() {
     .rpc_server(&rpc_server)
     .output::<Vec<Output>>();
 
-  assert_eq!(output.len(), 1);
-  assert_eq!(output[0].inscription, inscription.parse().unwrap());
-  assert_eq!(output[0].location, format!("{reveal}:0:0").parse().unwrap());
+  assert_eq!(output.len(), 0);
 }

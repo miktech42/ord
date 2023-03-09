@@ -18,13 +18,12 @@ fn outputs() {
 }
 
 #[test]
-fn outputs_includes_locked_outputs() {
+fn outputs_does_not_include_locked_outputs() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
   let coinbase_tx = &rpc_server.mine_blocks_with_subsidy(1, 1_000_000)[0].txdata[0];
   let outpoint = OutPoint::new(coinbase_tx.txid(), 0);
-  let amount = coinbase_tx.output[0].value;
 
   rpc_server.lock(outpoint);
 
@@ -32,6 +31,5 @@ fn outputs_includes_locked_outputs() {
     .rpc_server(&rpc_server)
     .output::<Vec<Output>>();
 
-  assert_eq!(output[0].output, outpoint);
-  assert_eq!(output[0].amount, amount);
+  assert_eq!(output.len(), 0);
 }
