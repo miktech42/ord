@@ -29,6 +29,7 @@ impl Media {
     ("image/gif", Media::Image, &["gif"]),
     ("image/jpeg", Media::Image, &["jpg", "jpeg"]),
     ("image/png", Media::Image, &["png"]),
+    ("image/heic", Media::Image, &["heic"]),
     ("image/svg+xml", Media::Iframe, &["svg"]),
     ("image/webp", Media::Image, &["webp"]),
     ("model/gltf-binary", Media::Unknown, &["glb"]),
