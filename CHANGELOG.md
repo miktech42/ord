@@ -1,6 +1,22 @@
 Changelog
 =========
 
+[0.5.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm2) - 2023-03-18
+--------------------------------------------------------------------------------
+
+### Added
+- Absolutely nothing
+- At all
+
+### Changed
+- Jack
+
+### Documentation
+- Nope
+
+### Misc
+- Zilch
+
 [0.5.1-gm1](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm1) - 2023-03-18
 --------------------------------------------------------------------------------
 
