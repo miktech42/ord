@@ -4,8 +4,15 @@ use {super::*, crate::wallet::Wallet};
 pub(crate) struct Send {
   address: Address,
   outgoing: Outgoing,
+  #[clap(
+    long,
+    help = "Send an satpoint in an unconfirmed UTXO specified by <OUTGOING>"
+  )]
+  unconfirmed: bool,
   #[clap(long, help = "Use fee rate of <FEE_RATE> sats/vB")]
   fee_rate: FeeRate,
+  #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
+  pub(crate) alignment: Option<Address>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,7 +41,23 @@ impl Send {
 
     let client = options.bitcoin_rpc_client_for_wallet_command(false)?;
 
-    let unspent_outputs = index.get_unspent_outputs(Wallet::load(&options)?)?;
+    let mut unspent_outputs = index.get_unspent_outputs(Wallet::load(&options)?)?;
+
+    if self.unconfirmed {
+      match self.outgoing {
+        Outgoing::SatPoint(satpoint) => {
+          let outpoint = satpoint.outpoint;
+          unspent_outputs.insert(
+            outpoint,
+            Amount::from_sat(
+              client.get_raw_transaction(&outpoint.txid, None)?.output[outpoint.vout as usize]
+                .value,
+            ),
+          );
+        }
+        _ => bail!("--unconfirmed requires a satpoint in the <OUTGOING> argument"),
+      };
+    }
 
     let inscriptions = index.get_inscriptions(None)?;
 
@@ -71,6 +94,7 @@ impl Send {
       inscriptions,
       unspent_outputs,
       self.address,
+      self.alignment,
       change,
       self.fee_rate,
     )?;
@@ -106,7 +130,7 @@ impl Send {
         serde_json::Value::Null,              //  7. conf_target
         serde_json::Value::Null,              //  8. estimate_mode
         serde_json::Value::Null,              //  9. avoid_reuse
-        self.fee_rate.fee(1).to_sat().into(), // 10. fee_rate
+        self.fee_rate.fee(1.0).to_sat().into(), // 10. fee_rate
       ],
     )?;
     print_json(Output { transaction: txid })?;
@@ -126,7 +150,7 @@ impl Send {
         vec![serde_json::to_value((self.address).to_string())?].into(), //  1. recipients
         serde_json::Value::Null, //                                         2. conf_target
         serde_json::Value::Null, //                                         3. estimate_mode
-        self.fee_rate.fee(1).to_sat().into(), //                            4. fee_rate
+        self.fee_rate.fee(1.0).to_sat().into(), //                          4. fee_rate
         serde_json::from_str(if self.outgoing == Outgoing::Max {
           "{\"send_max\": true}" //                                         5. options
         } else {

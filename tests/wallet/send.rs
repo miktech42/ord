@@ -342,7 +342,7 @@ fn wallet_send_with_fee_rate() {
     fee -= output.value;
   }
 
-  let fee_rate = fee as f64 / tx.vsize() as f64;
+  let fee_rate = fee as f64 / (tx.weight() as f64 / 4.0);
 
   pretty_assert_eq!(fee_rate, 2.0);
 }

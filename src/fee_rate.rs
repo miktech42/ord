@@ -23,10 +23,10 @@ impl TryFrom<f64> for FeeRate {
 }
 
 impl FeeRate {
-  pub(crate) fn fee(&self, vsize: usize) -> Amount {
+  pub(crate) fn fee(&self, vsize: f64) -> Amount {
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
-    Amount::from_sat((self.0 * vsize as f64).round() as u64)
+    Amount::from_sat((self.0 * vsize - 1e-8).ceil() as u64)
   }
 }
 
@@ -47,19 +47,19 @@ mod tests {
   #[test]
   fn fee() {
     assert_eq!(
-      "2.5".parse::<FeeRate>().unwrap().fee(100),
+      "2.5".parse::<FeeRate>().unwrap().fee(100.0),
       Amount::from_sat(250)
     );
     assert_eq!(
-      "2.0".parse::<FeeRate>().unwrap().fee(1024),
+      "2.0".parse::<FeeRate>().unwrap().fee(1024.0),
       Amount::from_sat(2048)
     );
     assert_eq!(
-      "1.1".parse::<FeeRate>().unwrap().fee(100),
+      "1.1".parse::<FeeRate>().unwrap().fee(100.0),
       Amount::from_sat(110)
     );
     assert_eq!(
-      "1.0".parse::<FeeRate>().unwrap().fee(123456789),
+      "1.0".parse::<FeeRate>().unwrap().fee(123456789.0),
       Amount::from_sat(123456789)
     );
   }

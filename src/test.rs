@@ -73,6 +73,14 @@ pub(crate) fn recipient() -> Address {
     .unwrap()
 }
 
+pub(crate) fn alignment() -> Option<Address> {
+  Some(
+    "tb1qvcvz5rnmpaqnw2d3rzkn0xxkwjks8x7mg8qc80"
+      .parse()
+      .unwrap(),
+  )
+}
+
 pub(crate) fn change(n: u64) -> Address {
   match n {
     0 => "tb1qjsv26lap3ffssj6hfy8mzn0lg5vte6a42j75ww",
