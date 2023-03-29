@@ -1,21 +1,22 @@
 Changelog
 =========
 
-[0.5.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm2) - 2023-03-18
+[0.5.1-gm3](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm3) - 2023-03-26
+--------------------------------------------------------------------------------
+
+### Misc
+- Replaced the `--unconfirmed` flag for `wallet send` and `wallet inscribe` with `--utxo` to allow providing multiple unconfirmed UTXOs for use when sending or inscribing. It is the user's responsibility to ensure the provided UTXOs contain no inscriptions. `ord` won't check that for you.
+
+[0.5.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm2) - 2023-03-25
 --------------------------------------------------------------------------------
 
 ### Added
-- Absolutely nothing
-- At all
+- Add `--alignment` flag to `wallet send` and `wallet inscribe` to allow setting which address to send the alignment padding to.
+- Add `--unconfirmed` flag to `wallet send` and `wallet inscribe` to allow sending from and inscribing on satpoints in unconfirmed utxos.
+- Calculate fees more accurately by not rounding the vsize of transactions up to an integer before multiplying by the fee rate.
 
 ### Changed
-- Jack
-
-### Documentation
-- Nope
-
-### Misc
-- Zilch
+- Fix a bug in the tracking of inscriptions that have been spent as fees (#1841)
 
 [0.5.1-gm1](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm1) - 2023-03-18
 --------------------------------------------------------------------------------

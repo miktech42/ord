@@ -83,7 +83,7 @@ impl Preview {
             file,
             no_backup: true,
             satpoint: None,
-            unconfirmed: false,
+            utxo: Vec::new(),
             dry_run: false,
             no_limit: false,
             destination: None,

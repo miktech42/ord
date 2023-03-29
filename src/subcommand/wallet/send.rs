@@ -6,9 +6,9 @@ pub(crate) struct Send {
   outgoing: Outgoing,
   #[clap(
     long,
-    help = "Send an satpoint in an unconfirmed UTXO specified by <OUTGOING>"
+    help = "Consider spending unconfirmed outpoint <UTXO>"
   )]
-  unconfirmed: bool,
+  utxo: Vec<OutPoint>,
   #[clap(long, help = "Use fee rate of <FEE_RATE> sats/vB")]
   fee_rate: FeeRate,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
@@ -43,20 +43,14 @@ impl Send {
 
     let mut unspent_outputs = index.get_unspent_outputs(Wallet::load(&options)?)?;
 
-    if self.unconfirmed {
-      match self.outgoing {
-        Outgoing::SatPoint(satpoint) => {
-          let outpoint = satpoint.outpoint;
-          unspent_outputs.insert(
-            outpoint,
-            Amount::from_sat(
-              client.get_raw_transaction(&outpoint.txid, None)?.output[outpoint.vout as usize]
-                .value,
-            ),
-          );
-        }
-        _ => bail!("--unconfirmed requires a satpoint in the <OUTGOING> argument"),
-      };
+    for outpoint in &self.utxo {
+      unspent_outputs.insert(
+        *outpoint,
+        Amount::from_sat(
+          client.get_raw_transaction(&outpoint.txid, None)?.output[outpoint.vout as usize]
+            .value,
+        ),
+      );
     }
 
     let inscriptions = index.get_inscriptions(None)?;
