@@ -650,6 +650,8 @@ impl Index {
       return Ok(None);
     }
 
+    let mut remaining_sats = search_end - search_start;
+
     let outpoint_to_sat_ranges = rtx.0.open_table(OUTPOINT_TO_SAT_RANGES)?;
 
     let mut result = Vec::new();
@@ -668,6 +670,11 @@ impl Index {
               offset: offset + overlap_start - start,
             },
           });
+
+          remaining_sats -= overlap_end - overlap_start;
+          if remaining_sats == 0 {
+            break;
+          }
         }
         offset += end - start;
       }
