@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.5.1-gm4](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm4) - 2023-03-30
+--------------------------------------------------------------------------------
+
+### Added
+- Accept a second parameter to `find` to allow finding ranges of sats, not just single sats.
+
 [0.5.1-gm3](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm3) - 2023-03-26
 --------------------------------------------------------------------------------
 
