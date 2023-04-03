@@ -1,11 +1,24 @@
 Changelog
 =========
 
+[0.5.1-gm6](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm6) - 2023-04-01
+
+### Added
+- Add `inscriptions` command to list all inscriptions. (#1996)
+
+[0.5.1-gm5](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm5) - 2023-03-31
+
+### Changed
+- Don't try to create the default data directory if `--index` overrides it. Create the specified directory instead. (#1991)
+
+### Added
+- Add flags to allow setting the postage amount for `wallet inscribe` and `wallet send`. (#1994)
+
 [0.5.1-gm4](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm4) - 2023-03-30
 --------------------------------------------------------------------------------
 
 ### Added
-- Accept a second parameter to `find` to allow finding ranges of sats, not just single sats.
+- Accept a second parameter to `find` to allow finding ranges of sats, not just single sats. (#1992)
 
 [0.5.1-gm3](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm3) - 2023-03-26
 --------------------------------------------------------------------------------

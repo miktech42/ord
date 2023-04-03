@@ -88,6 +88,7 @@ impl Preview {
             no_limit: false,
             destination: None,
             alignment: None,
+            postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
           },
         )),
       }
