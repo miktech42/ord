@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.5.1-gm7](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm7) - 2023-04-03
+
+### Changed
+- Add `--outpoint` flag to `find` to allow searching in specific outpoints.
+- Add the end of the range and the offset into the outpoint to the output of the `list` subcommand.
+- Add `--uncommon` flag to `inscriptions` to only list inscriptions on sats that are uncommon or rarer.
+
 [0.5.1-gm6](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm6) - 2023-04-01
 
 ### Added
