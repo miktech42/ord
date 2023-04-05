@@ -4,18 +4,21 @@ use {super::*, crate::wallet::Wallet};
 pub(crate) struct Send {
   address: Address,
   outgoing: Outgoing,
-  #[clap(
-    long,
-    help = "Consider spending unconfirmed outpoint <UTXO>"
-  )]
+  #[clap(long, help = "Consider spending unconfirmed outpoint <UTXO>")]
   utxo: Vec<OutPoint>,
   #[clap(long, help = "Use fee rate of <FEE_RATE> sats/vB")]
   fee_rate: FeeRate,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
   pub(crate) alignment: Option<Address>,
-  #[clap(long, help = "Target amount of postage to include in the sent output. Default `10000 sats`")]
+  #[clap(
+    long,
+    help = "Target amount of postage to include in the sent output. Default `10000 sats`"
+  )]
   pub(crate) target_postage: Option<Amount>,
-  #[clap(long, help = "Maximum amount of postage to include in the sent output. Default `20000 sats`")]
+  #[clap(
+    long,
+    help = "Maximum amount of postage to include in the sent output. Default `20000 sats`"
+  )]
   pub(crate) max_postage: Option<Amount>,
 }
 
@@ -51,8 +54,7 @@ impl Send {
       unspent_outputs.insert(
         *outpoint,
         Amount::from_sat(
-          client.get_raw_transaction(&outpoint.txid, None)?.output[outpoint.vout as usize]
-            .value,
+          client.get_raw_transaction(&outpoint.txid, None)?.output[outpoint.vout as usize].value,
         ),
       );
     }
@@ -127,15 +129,15 @@ impl Send {
     let txid = client.call(
       "sendtoaddress",
       &[
-        self.address.to_string().into(),      //  1. address
-        amount.to_btc().into(),               //  2. amount
-        serde_json::Value::Null,              //  3. comment
-        serde_json::Value::Null,              //  4. comment_to
-        serde_json::Value::Null,              //  5. subtractfeefromamount
-        serde_json::Value::Null,              //  6. replaceable
-        serde_json::Value::Null,              //  7. conf_target
-        serde_json::Value::Null,              //  8. estimate_mode
-        serde_json::Value::Null,              //  9. avoid_reuse
+        self.address.to_string().into(),        //  1. address
+        amount.to_btc().into(),                 //  2. amount
+        serde_json::Value::Null,                //  3. comment
+        serde_json::Value::Null,                //  4. comment_to
+        serde_json::Value::Null,                //  5. subtractfeefromamount
+        serde_json::Value::Null,                //  6. replaceable
+        serde_json::Value::Null,                //  7. conf_target
+        serde_json::Value::Null,                //  8. estimate_mode
+        serde_json::Value::Null,                //  9. avoid_reuse
         self.fee_rate.fee(1.0).to_sat().into(), // 10. fee_rate
       ],
     )?;

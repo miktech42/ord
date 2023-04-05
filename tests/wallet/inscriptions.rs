@@ -10,10 +10,12 @@ fn inscriptions() {
   rpc_server.mine_blocks(1);
 
   let Inscribe {
-    reveal,
-    inscription,
+    reveals,
+    inscriptions,
     ..
   } = inscribe(&rpc_server);
+  let reveal = reveals[0];
+  let inscription = &inscriptions[0];
 
   let output = CommandBuilder::new("wallet inscriptions")
     .rpc_server(&rpc_server)
@@ -59,10 +61,12 @@ fn inscriptions_includes_locked_utxos() {
   rpc_server.mine_blocks(1);
 
   let Inscribe {
-    inscription,
-    reveal,
+    inscriptions,
+    reveals,
     ..
   } = inscribe(&rpc_server);
+  let reveal = reveals[0];
+  let inscription = &inscriptions[0];
 
   rpc_server.mine_blocks(1);
 

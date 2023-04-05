@@ -35,19 +35,17 @@ impl Find {
           Err(anyhow!("range is empty"))
         }
       }
-      None => {
-        match index.find(self.sat.0, &self.outpoint)? {
-    	  Some(satpoint) => {
-    	    print_json(Output { satpoint })?;
-    	    Ok(())
-    	  }
-    	  None => Err(anyhow!(if self.outpoint.len() == 0 {
-    	    "sat has not been mined as of index height"
-    	  } else {
-    	    "sat was not round in satpoint(s)"
-    	  })),
+      None => match index.find(self.sat.0, &self.outpoint)? {
+        Some(satpoint) => {
+          print_json(Output { satpoint })?;
+          Ok(())
         }
-      }
+        None => Err(anyhow!(if self.outpoint.len() == 0 {
+          "sat has not been mined as of index height"
+        } else {
+          "sat was not round in satpoint(s)"
+        })),
+      },
     }
   }
 }

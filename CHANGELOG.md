@@ -1,6 +1,11 @@
 Changelog
 =========
 
+[0.5.1-gm8](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm8) - 2023-04-05
+
+### Changed
+- Allow multiple files to be inscribed by a single `wallet inscribe` command.
+
 [0.5.1-gm7](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm7) - 2023-04-03
 
 ### Changed

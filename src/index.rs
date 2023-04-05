@@ -159,7 +159,10 @@ impl Index {
     };
 
     if let Err(err) = fs::create_dir_all(&path.parent().unwrap()) {
-      bail!("failed to create data dir `{}`: {err}", path.parent().unwrap().display());
+      bail!(
+        "failed to create data dir `{}`: {err}",
+        path.parent().unwrap().display()
+      );
     }
 
     let database = match unsafe { Database::builder().open_mmapped(&path) } {
@@ -664,7 +667,12 @@ impl Index {
     }
   }
 
-  pub(crate) fn find_range(&self, search_start: u64, search_end: u64, outpoints: &Vec<OutPoint>) -> Result<Option<Vec<FindRangeOutput>>> {
+  pub(crate) fn find_range(
+    &self,
+    search_start: u64,
+    search_end: u64,
+    outpoints: &Vec<OutPoint>,
+  ) -> Result<Option<Vec<FindRangeOutput>>> {
     self.require_sat_index("find")?;
 
     let rtx = self.begin_read()?;
@@ -804,7 +812,7 @@ impl Index {
   pub(crate) fn get_inscriptions_by_sat(
     &self,
     n: Option<usize>,
-    uncommon: bool,    
+    uncommon: bool,
   ) -> Result<BTreeMap<Sat, InscriptionId>> {
     self.require_sat_index("inscriptions")?;
 
@@ -1452,7 +1460,11 @@ mod tests {
     let context = Context::builder().arg("--index-sats").build();
     context.mine_blocks(1);
     assert_eq!(
-      context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap().unwrap(),
+      context
+        .index
+        .find(50 * COIN_VALUE, &Vec::new())
+        .unwrap()
+        .unwrap(),
       SatPoint {
         outpoint: "30f2f037629c6a21c1f40ed39b9bd6278df39762d68d07f49582b23bcb23386a:0"
           .parse()
@@ -1465,7 +1477,10 @@ mod tests {
   #[test]
   fn find_unmined_sat() {
     let context = Context::builder().arg("--index-sats").build();
-    assert_eq!(context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap(), None);
+    assert_eq!(
+      context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap(),
+      None
+    );
   }
 
   #[test]
@@ -1479,7 +1494,11 @@ mod tests {
     });
     context.mine_blocks(1);
     assert_eq!(
-      context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap().unwrap(),
+      context
+        .index
+        .find(50 * COIN_VALUE, &Vec::new())
+        .unwrap()
+        .unwrap(),
       SatPoint {
         outpoint: OutPoint::new(spend_txid, 0),
         offset: 0,

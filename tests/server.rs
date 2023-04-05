@@ -41,10 +41,12 @@ fn inscription_page() {
   create_wallet(&rpc_server);
 
   let Inscribe {
-    inscription,
-    reveal,
+    inscriptions,
+    reveals,
     ..
   } = inscribe(&rpc_server);
+  let inscription = &inscriptions[0];
+  let reveal = reveals[0];
 
   TestServer::spawn_with_args(&rpc_server, &[]).assert_response_regex(
     format!("/inscription/{inscription}"),
@@ -93,7 +95,8 @@ fn inscription_appears_on_reveal_transaction_page() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
-  let Inscribe { reveal, .. } = inscribe(&rpc_server);
+  let Inscribe { reveals, .. } = inscribe(&rpc_server);
+  let reveal = reveals[0];
 
   rpc_server.mine_blocks(1);
 
@@ -109,10 +112,12 @@ fn inscription_appears_on_output_page() {
   create_wallet(&rpc_server);
 
   let Inscribe {
-    reveal,
-    inscription,
+    reveals,
+    inscriptions,
     ..
   } = inscribe(&rpc_server);
+  let reveal = reveals[0];
+  let inscription = &inscriptions[0];
 
   rpc_server.mine_blocks(1);
 
@@ -128,10 +133,12 @@ fn inscription_page_after_send() {
   create_wallet(&rpc_server);
 
   let Inscribe {
-    reveal,
-    inscription,
+    reveals,
+    inscriptions,
     ..
   } = inscribe(&rpc_server);
+  let reveal = reveals[0];
+  let inscription = &inscriptions[0];
 
   rpc_server.mine_blocks(1);
 
@@ -170,7 +177,8 @@ fn inscription_content() {
 
   rpc_server.mine_blocks(1);
 
-  let Inscribe { inscription, .. } = inscribe(&rpc_server);
+  let Inscribe { inscriptions, .. } = inscribe(&rpc_server);
+  let inscription = &inscriptions[0];
 
   rpc_server.mine_blocks(1);
 
@@ -194,7 +202,8 @@ fn home_page_includes_latest_inscriptions() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
-  let Inscribe { inscription, .. } = inscribe(&rpc_server);
+  let Inscribe { inscriptions, .. } = inscribe(&rpc_server);
+  let inscription = &inscriptions[0];
 
   TestServer::spawn_with_args(&rpc_server, &[]).assert_response_regex(
     "/",
@@ -215,10 +224,12 @@ fn home_page_inscriptions_are_sorted() {
   let mut inscriptions = String::new();
 
   for _ in 0..8 {
-    let Inscribe { inscription, .. } = inscribe(&rpc_server);
+    let Inscribe {
+      inscriptions: i, ..
+    } = inscribe(&rpc_server);
     inscriptions.insert_str(
       0,
-      &format!("\n  <a href=/inscription/{inscription}><iframe .*></a>"),
+      &format!("\n  <a href=/inscription/{}><iframe .*></a>", i[0]),
     );
   }
 
@@ -237,7 +248,8 @@ fn inscriptions_page() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
-  let Inscribe { inscription, .. } = inscribe(&rpc_server);
+  let Inscribe { inscriptions, .. } = inscribe(&rpc_server);
+  let inscription = &inscriptions[0];
 
   TestServer::spawn_with_args(&rpc_server, &[]).assert_response_regex(
     "/inscriptions",
@@ -259,8 +271,10 @@ fn inscriptions_page_is_sorted() {
   let mut inscriptions = String::new();
 
   for _ in 0..8 {
-    let Inscribe { inscription, .. } = inscribe(&rpc_server);
-    inscriptions.insert_str(0, &format!(".*<a href=/inscription/{inscription}>.*"));
+    let Inscribe {
+      inscriptions: i, ..
+    } = inscribe(&rpc_server);
+    inscriptions.insert_str(0, &format!(".*<a href=/inscription/{}>.*", i[0]));
   }
 
   TestServer::spawn_with_args(&rpc_server, &[])
@@ -272,19 +286,26 @@ fn inscriptions_page_has_next_and_previous() {
   let rpc_server = test_bitcoincore_rpc::spawn();
   create_wallet(&rpc_server);
 
-  let Inscribe { inscription: a, .. } = inscribe(&rpc_server);
-  let Inscribe { inscription: b, .. } = inscribe(&rpc_server);
-  let Inscribe { inscription: c, .. } = inscribe(&rpc_server);
+  let Inscribe {
+    inscriptions: a, ..
+  } = inscribe(&rpc_server);
+  let Inscribe {
+    inscriptions: b, ..
+  } = inscribe(&rpc_server);
+  let Inscribe {
+    inscriptions: c, ..
+  } = inscribe(&rpc_server);
 
   TestServer::spawn_with_args(&rpc_server, &[]).assert_response_regex(
-    format!("/inscription/{b}"),
+    format!("/inscription/{}", b[0]),
     format!(
       ".*<h1>Inscription 1</h1>.*
 <div class=inscription>
-<a class=prev href=/inscription/{a}>❮</a>
-<iframe .* src=/preview/{b}></iframe>
-<a class=next href=/inscription/{c}>❯</a>
+<a class=prev href=/inscription/{}>❮</a>
+<iframe .* src=/preview/{}></iframe>
+<a class=next href=/inscription/{}>❯</a>
 </div>.*",
+      a[0], b[0], c[0]
     ),
   );
 }

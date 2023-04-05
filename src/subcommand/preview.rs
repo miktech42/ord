@@ -73,29 +73,25 @@ impl Preview {
 
     rpc_client.generate_to_address(101, &address)?;
 
-    for file in self.inscriptions {
-      Arguments {
-        options: options.clone(),
-        subcommand: Subcommand::Wallet(super::wallet::Wallet::Inscribe(
-          super::wallet::inscribe::Inscribe {
-            fee_rate: FeeRate::try_from(1.0).unwrap(),
-            commit_fee_rate: None,
-            file,
-            no_backup: true,
-            satpoint: None,
-            utxo: Vec::new(),
-            dry_run: false,
-            no_limit: false,
-            destination: None,
-            alignment: None,
-            postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
-          },
-        )),
-      }
-      .run()?;
-
-      rpc_client.generate_to_address(1, &address)?;
+    Arguments {
+      options: options.clone(),
+      subcommand: Subcommand::Wallet(super::wallet::Wallet::Inscribe(
+        super::wallet::inscribe::Inscribe {
+          fee_rate: FeeRate::try_from(1.0).unwrap(),
+          commit_fee_rate: None,
+          files: self.inscriptions,
+          no_backup: true,
+          satpoint: None,
+          utxo: Vec::new(),
+          dry_run: false,
+          no_limit: false,
+          destination: None,
+          alignment: None,
+          postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
+        },
+      )),
     }
+    .run()?;
 
     rpc_client.generate_to_address(1, &address)?;
 

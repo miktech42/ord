@@ -40,8 +40,8 @@ macro_rules! assert_regex_match {
 struct Inscribe {
   #[allow(dead_code)]
   commit: Txid,
-  inscription: String,
-  reveal: Txid,
+  inscriptions: Vec<String>,
+  reveals: Vec<Txid>,
   fees: u64,
 }
 
