@@ -84,6 +84,7 @@ impl Preview {
           satpoint: None,
           utxo: Vec::new(),
           dry_run: false,
+          dump: false,
           no_limit: false,
           destination: None,
           alignment: None,

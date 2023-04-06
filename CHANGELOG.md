@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.5.1-gm10](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm10) - 2023-04-06
+
+### Changed
+- Have `wallet inscribe --dump` also display the recovery descriptors.
+
+[0.5.1-gm9](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm9) - 2023-04-06
+
+### Added
+- Add `--dump` flag to `wallet inscribe` to have it dump the raw hex transactions rather than broadcasting them.
+
 [0.5.1-gm8](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm8) - 2023-04-05
 
 ### Changed
