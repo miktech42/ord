@@ -1,5 +1,6 @@
 use super::*;
 
+pub mod decode;
 pub mod epochs;
 pub mod find;
 mod index;
@@ -22,6 +23,8 @@ fn print_json(output: impl Serialize) -> Result {
 
 #[derive(Debug, Parser)]
 pub(crate) enum Subcommand {
+  #[clap(about = "Decode inscription data from a transaction output")]
+  Decode(decode::Decode),
   #[clap(about = "List the first satoshis of each reward epoch")]
   Epochs,
   #[clap(about = "Run an explorer server populated with inscriptions")]
@@ -53,6 +56,7 @@ pub(crate) enum Subcommand {
 impl Subcommand {
   pub(crate) fn run(self, options: Options) -> Result {
     match self {
+      Self::Decode(decode) => decode.run(options),
       Self::Epochs => epochs::run(),
       Self::Preview(preview) => preview.run(),
       Self::Find(find) => find.run(options),

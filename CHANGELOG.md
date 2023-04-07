@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.5.1-gm11](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm11) - 2023-04-07
+
+### Added
+- Add `decode` subcommand to parse inscription data from specified tx input.
+- Check the commit transaction weight against the standardness limit when inscribing.
+
 [0.5.1-gm10](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm10) - 2023-04-06
 
 ### Changed
