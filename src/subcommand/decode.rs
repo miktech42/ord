@@ -5,7 +5,10 @@ use std::io::Write;
 pub(crate) struct Decode {
   #[clap(help = "Decode inscription data in <TXID>.")]
   txid: Txid,
-  #[clap(default_value = "0", help = "Decode inscription data in input <VIN> of <TXID>.")]
+  #[clap(
+    default_value = "0",
+    help = "Decode inscription data in input <VIN> of <TXID>."
+  )]
   vin: usize,
 }
 

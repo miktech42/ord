@@ -47,8 +47,13 @@ struct Output {
 pub(crate) struct Inscribe {
   #[clap(long, help = "Inscribe <SATPOINT>")]
   pub(crate) satpoint: Option<SatPoint>,
-  #[clap(long, help = "Consider spending unconfirmed outpoint <UTXO>")]
+  #[clap(
+    long,
+    help = "Consider spending outpoint <UTXO>, even if it is unconfirmed or contains inscriptions"
+  )]
   pub(crate) utxo: Vec<OutPoint>,
+  #[clap(long, help = "Only spend outpoints given with --utxo")]
+  pub(crate) coin_control: bool,
   #[clap(long, help = "Use fee rate of <FEE_RATE> sats/vB")]
   pub(crate) fee_rate: FeeRate,
   #[clap(
@@ -60,6 +65,8 @@ pub(crate) struct Inscribe {
   pub(crate) files: Vec<PathBuf>,
   #[clap(long, help = "Do not back up recovery key.")]
   pub(crate) no_backup: bool,
+  #[clap(long, help = "Do not broadcast any transactions.")]
+  pub(crate) no_broadcast: bool,
   #[clap(
     long,
     help = "Do not check that transactions are equal to or below the MAX_STANDARD_TX_WEIGHT of 400,000 weight units. Transactions over this limit are currently nonstandard and will not be relayed by bitcoind in its default configuration. Do not use this flag unless you understand the implications."
@@ -92,7 +99,11 @@ impl Inscribe {
 
     let client = options.bitcoin_rpc_client_for_wallet_command(false)?;
 
-    let mut utxos = index.get_unspent_outputs(Wallet::load(&options)?)?;
+    let mut utxos = if self.coin_control {
+      BTreeMap::new()
+    } else {
+      index.get_unspent_outputs(Wallet::load(&options)?)?
+    };
 
     for outpoint in &self.utxo {
       utxos.insert(
@@ -138,7 +149,12 @@ impl Inscribe {
       .hex;
 
     if !self.no_limit {
-      let commit_weight = client.call::<DecodeRawTransactionOutput>("decoderawtransaction", &[signed_raw_commit_tx.raw_hex().into()],)?.weight;
+      let commit_weight = client
+        .call::<DecodeRawTransactionOutput>(
+          "decoderawtransaction",
+          &[signed_raw_commit_tx.raw_hex().into()],
+        )?
+        .weight;
       if commit_weight > MAX_STANDARD_TX_WEIGHT.into() {
         bail!(
           "commit transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {commit_weight}"
@@ -176,54 +192,64 @@ impl Inscribe {
           .collect(),
         fees,
       })?;
-    } else if self.dump {
-      let commit = signed_raw_commit_tx.raw_hex();
-
-      let mut reveals = Vec::new();
-      let mut inscriptions = Vec::new();
-      for reveal_tx in reveal_txs {
-        reveals.push(reveal_tx.raw_hex());
-        inscriptions.push(reveal_tx.txid().into());
-      }
-
-      tprintln!("[recovery pairs]");
-      let recovery_descriptors = recovery_key_pairs.iter().map(|recovery_key_pair| Inscribe::get_recovery_key(&client, *recovery_key_pair, options.chain().network()).unwrap()).collect();
-
-      print_json(OutputDump {
-        satpoint,
-        inscriptions,
-        commit,
-        reveals,
-        recovery_descriptors,
-        fees,
-      })?;
     } else {
-      if !self.no_backup {
-        for recovery_key_pair in recovery_key_pairs {
-          Inscribe::backup_recovery_key(&client, recovery_key_pair, options.chain().network())?;
+      if self.dump {
+        let commit = signed_raw_commit_tx.raw_hex();
+
+        let mut reveals = Vec::new();
+        let mut inscriptions = Vec::new();
+        for reveal_tx in reveal_txs.iter() {
+          reveals.push(reveal_tx.raw_hex());
+          inscriptions.push(reveal_tx.txid().into());
         }
+
+        tprintln!("[recovery pairs]");
+        let recovery_descriptors = recovery_key_pairs
+          .iter()
+          .map(|recovery_key_pair| {
+            Inscribe::get_recovery_key(&client, *recovery_key_pair, options.chain().network())
+              .unwrap()
+          })
+          .collect();
+
+        print_json(OutputDump {
+          satpoint,
+          inscriptions,
+          commit,
+          reveals,
+          recovery_descriptors,
+          fees,
+        })?;
       }
 
-      let commit = client
-        .send_raw_transaction(&signed_raw_commit_tx)
-        .context("Failed to send commit transaction")?;
+      if !self.no_broadcast {
+        if !self.no_backup {
+          for recovery_key_pair in recovery_key_pairs {
+            Inscribe::backup_recovery_key(&client, recovery_key_pair, options.chain().network())?;
+          }
+        }
 
-      let mut reveals = Vec::new();
-      for reveal_tx in reveal_txs {
-        reveals.push(
-          client
-            .send_raw_transaction(&reveal_tx)
-            .context("Failed to send reveal transaction")?,
-        );
+        let commit = client
+          .send_raw_transaction(&signed_raw_commit_tx)
+          .context("Failed to send commit transaction")?;
+
+        let mut reveals = Vec::new();
+        for reveal_tx in reveal_txs {
+          reveals.push(
+            client
+              .send_raw_transaction(&reveal_tx)
+              .context("Failed to send reveal transaction")?,
+          );
+        }
+
+        print_json(Output {
+          satpoint,
+          inscriptions: reveals.iter().map(|reveal| (*reveal).into()).collect(),
+          commit,
+          reveals: reveals.iter().map(|reveal| *reveal).collect(),
+          fees,
+        })?;
       }
-
-      print_json(Output {
-        satpoint,
-        inscriptions: reveals.iter().map(|reveal| (*reveal).into()).collect(),
-        commit,
-        reveals: reveals.iter().map(|reveal| *reveal).collect(),
-        fees,
-      })?;
     }
 
     Ok(())
@@ -406,10 +432,10 @@ impl Inscribe {
       reveal_tx.output[0].value = reveal_tx.output[0]
         .value
         .checked_sub(fee.to_sat())
-        .context("commit transaction output value insufficient to pay transaction fee")?;
+        .context("reveal transaction output value insufficient to pay transaction fee")?;
 
       if reveal_tx.output[0].value < reveal_tx.output[0].script_pubkey.dust_value().to_sat() {
-        bail!("commit transaction output would be dust");
+        bail!("reveal transaction output would be dust");
       }
 
       let mut sighash_cache = SighashCache::new(&mut reveal_tx);
@@ -471,8 +497,15 @@ impl Inscribe {
     recovery_key_pair: TweakedKeyPair,
     network: Network,
   ) -> Result<String> {
-    let recovery_private_key = PrivateKey::new(recovery_key_pair.to_inner().secret_key(), network).to_wif();
-    Ok(format!("rawtr({})#{}", recovery_private_key, client.get_descriptor_info(&format!("rawtr({})", recovery_private_key))?.checksum))
+    let recovery_private_key =
+      PrivateKey::new(recovery_key_pair.to_inner().secret_key(), network).to_wif();
+    Ok(format!(
+      "rawtr({})#{}",
+      recovery_private_key,
+      client
+        .get_descriptor_info(&format!("rawtr({})", recovery_private_key))?
+        .checksum
+    ))
   }
 
   fn backup_recovery_key(

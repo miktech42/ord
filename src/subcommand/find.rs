@@ -43,7 +43,7 @@ impl Find {
         None => Err(anyhow!(if self.outpoint.len() == 0 {
           "sat has not been mined as of index height"
         } else {
-          "sat was not round in satpoint(s)"
+          "sat was not found in satpoint(s)"
         })),
       },
     }

@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[0.5.1-gm12](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm12) - 2023-04-12
+
+### Added
+- Add the inscription number and the satoshi number to the `wallet inscriptions` output.
+- Add `--no-broadcast` flag to `wallet inscribe` to prevent it broadcasting any transactions.
+- Add `--coin-control` flag to `wallet inscribe` and `wallet send` to have those commands only spend utxos given with the `--utxo` flag.
+- Add `decode` command to dump the contents of an inscription to a file, even if it isn't confirmed yet.
+
+### Changed
+- Alter the behavior of `--dump` in `wallet inscribe`. It no longer inhibits transaction broadcast.
+- Fixed a couple of typos.
+
 [0.5.1-gm11](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm11) - 2023-04-07
 
 ### Added

@@ -771,15 +771,19 @@ impl TransactionBuilder {
     }
 
     for (i, output) in transaction.output.iter().enumerate() {
-      if (i < self.padding_outputs || i >= self.padding_outputs + self.recipient.len()) &&
-         (self.alignment.is_none() || (self.alignment.is_some() && output.script_pubkey != self.alignment.as_ref().unwrap().script_pubkey())) {
+      if (i < self.padding_outputs || i >= self.padding_outputs + self.recipient.len())
+        && (self.alignment.is_none()
+          || (self.alignment.is_some()
+            && output.script_pubkey != self.alignment.as_ref().unwrap().script_pubkey()))
+      {
         assert!(
           self
             .change_addresses
             .iter()
             .any(|change_address| change_address.script_pubkey() == output.script_pubkey),
           "invariant: all outputs are either change or recipient: unrecognized output {} {}",
-          output.script_pubkey, i
+          output.script_pubkey,
+          i
         );
       }
     }
