@@ -40,7 +40,7 @@ impl Find {
           print_json(Output { satpoint })?;
           Ok(())
         }
-        None => Err(anyhow!(if self.outpoint.len() == 0 {
+        None => Err(anyhow!(if self.outpoint.is_empty() {
           "sat has not been mined as of index height"
         } else {
           "sat was not found in satpoint(s)"

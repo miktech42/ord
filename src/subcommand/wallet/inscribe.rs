@@ -17,6 +17,8 @@ use {
   bitcoincore_rpc::Client,
   bitcoincore_rpc::RawTx,
   std::collections::BTreeSet,
+  std::{thread, time},
+  std::io::Write,
 };
 
 #[derive(Deserialize)]
@@ -67,6 +69,8 @@ pub(crate) struct Inscribe {
   pub(crate) no_backup: bool,
   #[clap(long, help = "Do not broadcast any transactions.")]
   pub(crate) no_broadcast: bool,
+  #[clap(long, help = "Wait for the commit tx to confirm before sending reveal txs.")]
+  pub(crate) wait_after_commit: bool,
   #[clap(
     long,
     help = "Do not check that transactions are equal to or below the MAX_STANDARD_TX_WEIGHT of 400,000 weight units. Transactions over this limit are currently nonstandard and will not be relayed by bitcoind in its default configuration. Do not use this flag unless you understand the implications."
@@ -175,7 +179,7 @@ impl Inscribe {
     let fees = Self::calculate_fee(&unsigned_commit_tx, &utxos)
       + reveal_txs
         .iter()
-        .map(|reveal_tx| Self::calculate_fee(&reveal_tx, &utxos))
+        .map(|reveal_tx| Self::calculate_fee(reveal_tx, &utxos))
         .sum::<u64>();
 
     if self.dry_run {
@@ -233,6 +237,22 @@ impl Inscribe {
           .send_raw_transaction(&signed_raw_commit_tx)
           .context("Failed to send commit transaction")?;
 
+        if self.wait_after_commit {
+          eprint!("waiting for commit transaction {} to confirm ", commit);
+          io::stdout().flush()?;
+          loop {
+            thread::sleep(time::Duration::from_secs(3));
+            let confirmations = client.get_transaction(&commit, Some(false))?.info.confirmations;
+            eprint!(".");
+            io::stdout().flush()?;
+            if confirmations > 0 {
+              break;
+            }
+          }
+          eprintln!();
+          eprintln!("confirmed");
+        }
+
         let mut reveals = Vec::new();
         for reveal_tx in reveal_txs {
           reveals.push(
@@ -246,7 +266,7 @@ impl Inscribe {
           satpoint,
           inscriptions: reveals.iter().map(|reveal| (*reveal).into()).collect(),
           commit,
-          reveals: reveals.iter().map(|reveal| *reveal).collect(),
+          reveals,
           fees,
         })?;
       }
@@ -416,7 +436,7 @@ impl Inscribe {
         .expect("should find sat commit/inscription output");
 
       let (mut reveal_tx, fee) = Self::build_reveal_transaction(
-        &control_block,
+        control_block,
         reveal_fee_rate,
         OutPoint {
           txid: unsigned_commit_tx.txid(),

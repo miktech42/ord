@@ -430,18 +430,17 @@ impl TransactionBuilder {
       .checked_add(estimated_fee)
       .ok_or(Error::ValueOverflow)?;
 
-    let have;
-    if self.padding_outputs == 0 {
-      have = self.outputs.clone().iter().map(|output| output.1).sum();
+    let have = if self.padding_outputs == 0 {
+      self.outputs.clone().iter().map(|output| output.1).sum()
     } else {
-      have = self
+      self
         .outputs
         .clone()
         .iter()
         .skip(1)
         .map(|output| output.1)
-        .sum();
-    }
+        .sum()
+    };
     if let Some(mut deficit) = total.checked_sub(have) {
       while deficit > Amount::ZERO {
         let additional_fee = self.fee_rate.fee(Self::ADDITIONAL_INPUT_VBYTES);

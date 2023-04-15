@@ -17,7 +17,7 @@ impl Decode {
     let index = Index::open(&options)?;
 
     let inputs = &Index::get_transaction(&index, self.txid)?.unwrap().input;
-    let vin = self.vin as usize;
+    let vin = self.vin;
     if vin >= inputs.len() {
       bail!("<VIN> too high - there are only {} input(s)", inputs.len());
     }
@@ -29,7 +29,7 @@ impl Decode {
           .write(true)
           .truncate(true)
           .open("file.dat")?
-          .write_all(&inscription.body().unwrap())?;
+          .write_all(inscription.body().unwrap())?;
 
         println!("content-type: {}", inscription.content_type().unwrap());
         println!("body written to file.dat");
