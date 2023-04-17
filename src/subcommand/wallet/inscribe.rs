@@ -89,6 +89,8 @@ pub(crate) struct Inscribe {
     help = "Amount of postage to include in the inscription. Default `10000 sats`"
   )]
   pub(crate) postage: Option<Amount>,
+  #[clap(long, help = "Use at most <MAX_INPUTS> inputs to build the commit transaction.")]
+  pub(crate) max_inputs: Option<usize>,
 }
 
 impl Inscribe {
@@ -140,6 +142,7 @@ impl Inscribe {
         self.alignment,
         self.commit_fee_rate.unwrap_or(self.fee_rate),
         self.fee_rate,
+        self.max_inputs,
         self.no_limit,
         match self.postage {
           Some(postage) => postage,
@@ -318,6 +321,7 @@ impl Inscribe {
     alignment: Option<Address>,
     commit_fee_rate: FeeRate,
     reveal_fee_rate: FeeRate,
+    max_inputs: Option<usize>,
     no_limit: bool,
     postage: Amount,
   ) -> Result<(SatPoint, Transaction, Vec<Transaction>, Vec<TweakedKeyPair>)> {
@@ -413,6 +417,7 @@ impl Inscribe {
       change,
       commit_fee_rate,
       reveal_fees,
+      max_inputs,
     )?;
 
     let mut reveal_txs = Vec::new();
@@ -614,6 +619,7 @@ mod tests {
         None,
         FeeRate::try_from(1.0).unwrap(),
         FeeRate::try_from(1.0).unwrap(),
+      None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       )
@@ -647,6 +653,7 @@ mod tests {
       None,
       FeeRate::try_from(1.0).unwrap(),
       FeeRate::try_from(1.0).unwrap(),
+      None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
     )
@@ -684,6 +691,7 @@ mod tests {
       None,
       FeeRate::try_from(1.0).unwrap(),
       FeeRate::try_from(1.0).unwrap(),
+      None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
     )
@@ -728,6 +736,7 @@ mod tests {
       None,
       FeeRate::try_from(1.0).unwrap(),
       FeeRate::try_from(1.0).unwrap(),
+      None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
     )
@@ -767,6 +776,7 @@ mod tests {
         None,
         FeeRate::try_from(fee_rate).unwrap(),
         FeeRate::try_from(fee_rate).unwrap(),
+        None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       )
@@ -832,6 +842,7 @@ mod tests {
         None,
         FeeRate::try_from(commit_fee_rate).unwrap(),
         FeeRate::try_from(fee_rate).unwrap(),
+        None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       )
@@ -883,6 +894,7 @@ mod tests {
       None,
       FeeRate::try_from(1.0).unwrap(),
       FeeRate::try_from(1.0).unwrap(),
+      None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
     )
@@ -917,6 +929,7 @@ mod tests {
         None,
         FeeRate::try_from(1.0).unwrap(),
         FeeRate::try_from(1.0).unwrap(),
+        None,
         true,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       )

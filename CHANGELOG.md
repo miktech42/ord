@@ -1,6 +1,14 @@
 Changelog
 =========
 
+[0.5.1-gm15](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm15) - 2023-04-16
+
+### Added
+- Add `--max-inputs`` flag to `wallet send` (for inscriptions and satpoints) and `wallet inscribe` to limit the number of inputs in the transactions they make.
+
+### Changed
+- Only add the `sat` field to the output of `wallet inscriptions` if the full sat index is in use.
+
 [0.5.1-gm14](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm14) - 2023-04-14
 
 ### Added

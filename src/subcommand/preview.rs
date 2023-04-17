@@ -92,6 +92,7 @@ impl Preview {
           destination: None,
           alignment: None,
           postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
+          max_inputs: None,
         },
       )),
     }

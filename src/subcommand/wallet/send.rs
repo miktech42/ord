@@ -28,6 +28,8 @@ pub(crate) struct Send {
     help = "Maximum amount of postage to include in the sent output. Default `20000 sats`"
   )]
   pub(crate) max_postage: Option<Amount>,
+  #[clap(long, help = "Use at most <MAX_INPUTS> inputs to build the transaction sending a satpoint or an inscription.")]
+  pub(crate) max_inputs: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -109,6 +111,7 @@ impl Send {
       self.alignment,
       change,
       self.fee_rate,
+      self.max_inputs,
       match self.target_postage {
         Some(target_postage) => target_postage,
         _ => TransactionBuilder::DEFAULT_TARGET_POSTAGE,
