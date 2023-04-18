@@ -1,10 +1,15 @@
 Changelog
 =========
 
+[0.5.1-gm16](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm16) - 2023-04-17
+
+### Changed
+- Close the index database before starting to wait for the commit tx to confirm. This allows other instances of ord to run while we're waiting.
+
 [0.5.1-gm15](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm15) - 2023-04-16
 
 ### Added
-- Add `--max-inputs`` flag to `wallet send` (for inscriptions and satpoints) and `wallet inscribe` to limit the number of inputs in the transactions they make.
+- Add `--max-inputs` flag to `wallet send` (for inscriptions and satpoints) and `wallet inscribe` to limit the number of inputs in the transactions they make.
 
 ### Changed
 - Only add the `sat` field to the output of `wallet inscriptions` if the full sat index is in use.
@@ -14,10 +19,26 @@ Changelog
 ### Added
 - Add `--wait-after-commit` flag to `wallet inscribe` to have ord wait for the commit transaction to confirm before sending reveal transaction(s).
 
+Note that it could take a long time for the commit transaction to commit, and the reveal transactions aren't broadcast until it does. If you are running ord over an ssh connection and the connection times out while it is waiting the ord process will probably be killed and the reveal transactions will never be broadcast, leaving the commit outputs stranded.
+
+To prevent this, you can use `--dump` to cause all the raw transactions to be printed to standard output before anything is broadcast. Redirect the output to a file to capture it:
+
+`ord wallet inscribe --dump --fee-rate 10 --wait-for-commit > ord.log`
+
+If you are using --dump like that you can also use `--no-backup` to avoid the slow process of saving all the recovery keys to the wallet because they will be written to standard output.
+
+Also, if running ord using an ssh connection you might consider running it inside a `screen` session so that it will survive even if the ssh connection times out.
+
 [0.5.1-gm13](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm13) - 2023-04-14
 
 ### Added
-- Add functionality to `ord inscriptions` to list in order of inscription number, to allow it to work without the full sats index, and to allow limiting output in various ways (`--max-sat`, `--max-number`, `--max-height`. Renamed `--max` flag to `--limit`.
+- Add flag `--order-by-sat` to list in order of inscribed sat number.
+- Add flags to allow limiting output in various ways (`--max-sat`, `--max-number`, `--max-height`).
+
+### Changed
+- Change default behavior of `ord inscriptions` to list in order of inscription number.
+- Modify it to work without the full sats index
+- Renamed `--max` flag to `--limit`.
 
 [0.5.1-gm12](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm12) - 2023-04-12
 

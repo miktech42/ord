@@ -241,6 +241,7 @@ impl Inscribe {
           .context("Failed to send commit transaction")?;
 
         if self.wait_after_commit {
+          drop(index);
           eprint!("waiting for commit transaction {} to confirm ", commit);
           io::stdout().flush()?;
           loop {
