@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.5.1-gm18](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm18) - 2023-04-18
+
+### Changed
+- Drop the bitcoin connection while waiting for commit to confirm.
+
+[0.5.1-gm17](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm17) - 2023-04-18
+
+### Changed
+- While waiting for commit tx to confirm, don't fail if we are temporarily unable to talk to the bitcoin client. Attempt reconnecting to it.
+
 [0.5.1-gm16](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm16) - 2023-04-17
 
 ### Changed
