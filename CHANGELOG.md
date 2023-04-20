@@ -1,22 +1,64 @@
 Changelog
 =========
 
+[0.5.2-gm1](https://github.com/casey/ord/releases/tag/0.5.2-gm1) - 2023-04-19
+-----------------------------------------------------------------------------
+
+### Added
+- Add `--id` and `--number` flags to `ord inscriptions` to list specific inscriptions by inscriptionid or by inscription number.
+
+[0.5.2](https://github.com/casey/ord/releases/tag/0.5.2) - 2023-04-17
+---------------------------------------------------------------------
+
+### Added
+- Add `ord wallet cardinals` command to list the cardinal outputs (#1904)
+
+### Changed
+- Shut down immediately after two interrupts (#2008)
+- Mandatory fee rate for inscribe (#1897)
+- Add error when a satpoint's offset exceeds the size of its output (#1857)
+
+### Fixed
+- Fix fee-spent inscription tracking (#1971)
+- Label change and receive addresses correctly (#1847)
+- Correct reveal tx fee calculation (#1853)
+
+### Misc
+- Misc changes (#2025)
+- Misc doc fixes (#2021)
+- Typo in sparrow wallet guide (#1947)
+- Miscellaneous design improvements (#1968)
+- Update miniscript dependency to 9.0.1 (#1966)
+- Skip indexing inscriptions when below first inscription also for `--index-sats`(#1828)
+- Better interrupt message (#1874)
+- Fix colored coins link in BIP (#1856)
+- Added cozy pair programming twitch link to README.md (#1827)
+- Create rpc client after updating index (#1731)
+- Add additional err msg to build from source for users who's arch falls outside of the list (#1792)
+- Add note on default build location (#1625)
+- Minor copy fixes (#1730)
+- Typo (#1815)
+
 [0.5.1-gm18](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm18) - 2023-04-18
+----------------------------------------------------------------------------------
 
 ### Changed
 - Drop the bitcoin connection while waiting for commit to confirm.
 
 [0.5.1-gm17](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm17) - 2023-04-18
+----------------------------------------------------------------------------------
 
 ### Changed
 - While waiting for commit tx to confirm, don't fail if we are temporarily unable to talk to the bitcoin client. Attempt reconnecting to it.
 
 [0.5.1-gm16](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm16) - 2023-04-17
+----------------------------------------------------------------------------------
 
 ### Changed
 - Close the index database before starting to wait for the commit tx to confirm. This allows other instances of ord to run while we're waiting.
 
 [0.5.1-gm15](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm15) - 2023-04-16
+----------------------------------------------------------------------------------
 
 ### Added
 - Add `--max-inputs` flag to `wallet send` (for inscriptions and satpoints) and `wallet inscribe` to limit the number of inputs in the transactions they make.
@@ -25,6 +67,7 @@ Changelog
 - Only add the `sat` field to the output of `wallet inscriptions` if the full sat index is in use.
 
 [0.5.1-gm14](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm14) - 2023-04-14
+----------------------------------------------------------------------------------
 
 ### Added
 - Add `--wait-after-commit` flag to `wallet inscribe` to have ord wait for the commit transaction to confirm before sending reveal transaction(s).
@@ -40,6 +83,7 @@ If you are using --dump like that you can also use `--no-backup` to avoid the sl
 Also, if running ord using an ssh connection you might consider running it inside a `screen` session so that it will survive even if the ssh connection times out.
 
 [0.5.1-gm13](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm13) - 2023-04-14
+----------------------------------------------------------------------------------
 
 ### Added
 - Add flag `--order-by-sat` to list in order of inscribed sat number.
@@ -51,6 +95,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Renamed `--max` flag to `--limit`.
 
 [0.5.1-gm12](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm12) - 2023-04-12
+----------------------------------------------------------------------------------
 
 ### Added
 - Add the inscription number and the satoshi number to the `wallet inscriptions` output.
@@ -63,27 +108,32 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Fixed a couple of typos.
 
 [0.5.1-gm11](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm11) - 2023-04-07
+----------------------------------------------------------------------------------
 
 ### Added
 - Add `decode` subcommand to parse inscription data from specified tx input.
 - Check the commit transaction weight against the standardness limit when inscribing.
 
 [0.5.1-gm10](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm10) - 2023-04-06
+----------------------------------------------------------------------------------
 
 ### Changed
 - Have `wallet inscribe --dump` also display the recovery descriptors.
 
 [0.5.1-gm9](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm9) - 2023-04-06
+--------------------------------------------------------------------------------
 
 ### Added
 - Add `--dump` flag to `wallet inscribe` to have it dump the raw hex transactions rather than broadcasting them.
 
 [0.5.1-gm8](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm8) - 2023-04-05
+--------------------------------------------------------------------------------
 
 ### Changed
 - Allow multiple files to be inscribed by a single `wallet inscribe` command.
 
 [0.5.1-gm7](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm7) - 2023-04-03
+--------------------------------------------------------------------------------
 
 ### Changed
 - Add `--outpoint` flag to `find` to allow searching in specific outpoints.
@@ -91,11 +141,13 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Add `--uncommon` flag to `inscriptions` to only list inscriptions on sats that are uncommon or rarer.
 
 [0.5.1-gm6](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm6) - 2023-04-01
+--------------------------------------------------------------------------------
 
 ### Added
 - Add `inscriptions` command to list all inscriptions. (#1996)
 
 [0.5.1-gm5](https://github.com/gmart7t2/ord/releases/tag/0.5.1-gm5) - 2023-03-31
+--------------------------------------------------------------------------------
 
 ### Changed
 - Don't try to create the default data directory if `--index` overrides it. Create the specified directory instead. (#1991)

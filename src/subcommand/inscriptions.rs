@@ -10,6 +10,10 @@ pub(crate) struct Inscriptions {
   max_height: Option<u64>,
   #[clap(long, help = "Maximum sat number to list")]
   max_sat: Option<Sat>,
+  #[clap(long, help = "Specific single inscription number to show")]
+  number: Option<u64>,
+  #[clap(long, help = "Specific single inscription id to show")]
+  id: Option<InscriptionId>,
   #[clap(long, help = "Only list inscriptions on uncommon sats or rarer.")]
   uncommon: bool,
   #[clap(
@@ -17,6 +21,27 @@ pub(crate) struct Inscriptions {
     help = "List inscriptions in order of inscribed satoshi ordinals."
   )]
   order_by_sat: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct OutputWithSatWithAddress {
+  pub sat: Sat,
+  pub number: u64,
+  pub height: u64,
+  pub timestamp: u32,
+  pub inscription: InscriptionId,
+  pub location: SatPoint,
+  pub address: Address,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct OutputWithoutSatWithAddress {
+  pub number: u64,
+  pub height: u64,
+  pub timestamp: u32,
+  pub inscription: InscriptionId,
+  pub location: SatPoint,
+  pub address: Address,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -56,6 +81,53 @@ impl Inscriptions {
       }
     }
 
+    if self.number.is_some() && self.id.is_some() {
+      bail!("can't specify --number and --id");
+    }
+
+    if self.number.is_some() || self.id.is_some() {
+      let inscription = if self.number.is_some() {
+        let number = self.number.unwrap();
+        index.get_inscription_id_by_inscription_number(number)?.ok_or_else(|| anyhow!("Inscription {number} not found"))?
+      } else {
+        self.id.unwrap()
+      };
+
+      let entry = index
+        .get_inscription_entry(inscription)?
+        .unwrap();
+      let location = index
+            .get_inscription_satpoint_by_id(inscription)?
+            .unwrap();
+      let output = index
+        .get_transaction(location.outpoint.txid)?.unwrap()
+        .output
+        .into_iter()
+        .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
+      let address = options.chain().address_from_script(&output.script_pubkey)?;
+      if index_has_sats {
+        print_json(OutputWithSatWithAddress {
+          sat: entry.sat.unwrap(),
+          inscription,
+          location,
+          number: entry.number,
+          height: entry.height,
+          timestamp: entry.timestamp,
+          address,
+        })?;
+      } else {
+        print_json(OutputWithoutSatWithAddress {
+          inscription,
+          location,
+          number: entry.number,
+          height: entry.height,
+          timestamp: entry.timestamp,
+          address,
+        })?;
+      }
+      return Ok(());
+    }
+
     let inscriptions = if self.order_by_sat {
       index.get_inscriptions_by_sat(
         self.limit,
@@ -81,13 +153,14 @@ impl Inscriptions {
       let entry = index
         .get_inscription_entry(inscription)?
         .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
+      let location = index
+            .get_inscription_satpoint_by_id(inscription)?
+            .unwrap();
       if index_has_sats {
         output_with_sat.push(OutputWithSat {
           sat: entry.sat.unwrap(),
           inscription,
-          location: index
-            .get_inscription_satpoint_by_id(inscription)?
-            .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?,
+          location,
           number: entry.number,
           height: entry.height,
           timestamp: entry.timestamp,
@@ -95,9 +168,7 @@ impl Inscriptions {
       } else {
         output_without_sat.push(OutputWithoutSat {
           inscription,
-          location: index
-            .get_inscription_satpoint_by_id(inscription)?
-            .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?,
+          location,
           number: entry.number,
           height: entry.height,
           timestamp: entry.timestamp,
