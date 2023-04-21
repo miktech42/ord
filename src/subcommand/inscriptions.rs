@@ -32,6 +32,8 @@ pub struct OutputWithSatWithAddress {
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub address: Address,
+  pub amount: u64,
+  pub content_type: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -42,6 +44,8 @@ pub struct OutputWithoutSatWithAddress {
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub address: Address,
+  pub amount: u64,
+  pub content_type: String,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -104,6 +108,10 @@ impl Inscriptions {
         .output
         .into_iter()
         .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
+      let amount = output.value;
+      let content_type = index
+        .get_inscription_by_id(inscription)?
+        .ok_or_else(|| anyhow!("inscription {inscription} not found"))?.content_type().unwrap().to_string();
       let address = options.chain().address_from_script(&output.script_pubkey)?;
       if index_has_sats {
         print_json(OutputWithSatWithAddress {
@@ -114,6 +122,8 @@ impl Inscriptions {
           height: entry.height,
           timestamp: entry.timestamp,
           address,
+          amount,
+          content_type,
         })?;
       } else {
         print_json(OutputWithoutSatWithAddress {
@@ -123,6 +133,8 @@ impl Inscriptions {
           height: entry.height,
           timestamp: entry.timestamp,
           address,
+          amount,
+          content_type,
         })?;
       }
       return Ok(());

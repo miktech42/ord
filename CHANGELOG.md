@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.5.2-gm2](https://github.com/casey/ord/releases/tag/0.5.2-gm2) - 2023-04-21
+-----------------------------------------------------------------------------
+
+### Added
+- Add `amount` and `content-type` fields to `ord inscriptions --number` and `ord inscriptions --id` output.
+
 [0.5.2-gm1](https://github.com/casey/ord/releases/tag/0.5.2-gm1) - 2023-04-19
 -----------------------------------------------------------------------------
 
