@@ -86,7 +86,7 @@ pub(crate) struct Inscribe {
   #[clap(long, help = "Dump raw hex transactions instead of sending them.")]
   pub(crate) dump: bool,
   #[clap(long, help = "Send inscription to <DESTINATION>.")]
-  pub(crate) destination: Option<Address>,
+  pub(crate) destination: Vec<Address>,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
   pub(crate) alignment: Option<Address>,
   #[clap(
@@ -103,7 +103,7 @@ pub(crate) struct Inscribe {
     long,
     help = "Location of a CSV file to use for a combination of DESTINATION and FILE NAMES.  Should be structured `destination,file`."
   )]
-  pub(crate) destination_csv: Option<PathBuf>,
+  pub(crate) csv: Option<PathBuf>,
 }
 
 impl Inscribe {
@@ -113,19 +113,18 @@ impl Inscribe {
 
     let mut client = options.bitcoin_rpc_client_for_wallet_command(false)?;
 
-    if let Some(destination_csv) = self.destination_csv {
+    if let Some(csv) = self.csv {
       if !self.files.is_empty() {
         return Err(anyhow!(
-          "Cannot use both --destination-csv and provide files"
+          "Cannot use both --csv and provide files"
         ));
-      } else if self.destination.is_some() {
+      } else if !self.destination.is_empty() {
         return Err(anyhow!(
-          "Cannot use both --destination-csv and --destination"
+          "Cannot use both --csv and --destination"
         ));
       }
 
-      let destination_csv_ref = &destination_csv;
-      let file = File::open(destination_csv_ref)?;
+      let file = File::open(&csv)?;
       let reader = BufReader::new(file);
       for line in reader.lines() {
         let line = line?;
@@ -133,13 +132,13 @@ impl Inscribe {
         let destination = split.next().ok_or_else(|| {
           anyhow!(
             "Destination CSV file {} is not formatted correctly",
-            destination_csv_ref.display()
+            csv.display()
           )
         })?;
         let file = split.next().ok_or_else(|| {
           anyhow!(
             "Destination CSV file {} is not formatted correctly",
-            destination_csv.display()
+            csv.display()
           )
         })?;
         let file = PathBuf::from(file);
@@ -147,15 +146,17 @@ impl Inscribe {
         destinations.push(Address::from_str(destination)?);
       }
     } else {
-      for file in self.files {
+      for file in self.files.iter() {
         inscription.push(Inscription::from_file(options.chain(), file)?);
       }
-      destinations.push(
-        self
-          .destination
-          .map(Ok)
-          .unwrap_or_else(|| get_change_address(&client))?,
-      );
+      if self.destination.is_empty() {
+        for _ in self.files {
+          destinations.push(
+            get_change_address(&client)?);
+        }
+      } else {
+        destinations = self.destination;
+      }
     }
 
     let index = Index::open(&options)?;

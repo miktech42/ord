@@ -89,11 +89,11 @@ impl Preview {
           dry_run: false,
           dump: false,
           no_limit: false,
-          destination: None,
+          destination: Vec::new(),
           alignment: None,
           postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
           max_inputs: None,
-          destination_csv: None,
+          csv: None,
         },
       )),
     }
