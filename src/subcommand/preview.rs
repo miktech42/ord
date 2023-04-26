@@ -93,6 +93,7 @@ impl Preview {
           alignment: None,
           postage: Some(TransactionBuilder::DEFAULT_TARGET_POSTAGE),
           max_inputs: None,
+          destination_csv: None,
         },
       )),
     }

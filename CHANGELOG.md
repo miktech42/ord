@@ -1,14 +1,23 @@
 Changelog
 =========
 
-[0.5.2-gm2](https://github.com/casey/ord/releases/tag/0.5.2-gm2) - 2023-04-21
------------------------------------------------------------------------------
+[0.5.2-gm3](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm3) - 2023-04-25
+--------------------------------------------------------------------------------
+
+### Added
+- Add `--csv` flag to `wallet inscribe` to provide a file containing a list of `<destination>,<filename>` pairs when inscribing.
+
+### Changed
+- Don't have `--no-broadcast` imply `--no-backup` in `wallet inscribe`..
+
+[0.5.2-gm2](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm2) - 2023-04-21
+--------------------------------------------------------------------------------
 
 ### Added
 - Add `amount` and `content-type` fields to `ord inscriptions --number` and `ord inscriptions --id` output.
 
-[0.5.2-gm1](https://github.com/casey/ord/releases/tag/0.5.2-gm1) - 2023-04-19
------------------------------------------------------------------------------
+[0.5.2-gm1](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm1) - 2023-04-19
+--------------------------------------------------------------------------------
 
 ### Added
 - Add `--id` and `--number` flags to `ord inscriptions` to list specific inscriptions by inscriptionid or by inscription number.

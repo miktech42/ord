@@ -92,26 +92,29 @@ impl Inscriptions {
     if self.number.is_some() || self.id.is_some() {
       let inscription = if self.number.is_some() {
         let number = self.number.unwrap();
-        index.get_inscription_id_by_inscription_number(number)?.ok_or_else(|| anyhow!("Inscription {number} not found"))?
+        index
+          .get_inscription_id_by_inscription_number(number)?
+          .ok_or_else(|| anyhow!("Inscription {number} not found"))?
       } else {
         self.id.unwrap()
       };
 
-      let entry = index
-        .get_inscription_entry(inscription)?
-        .unwrap();
-      let location = index
-            .get_inscription_satpoint_by_id(inscription)?
-            .unwrap();
+      let entry = index.get_inscription_entry(inscription)?.unwrap();
+      let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
       let output = index
-        .get_transaction(location.outpoint.txid)?.unwrap()
+        .get_transaction(location.outpoint.txid)?
+        .unwrap()
         .output
         .into_iter()
-        .nth(location.outpoint.vout.try_into().unwrap()).unwrap();
+        .nth(location.outpoint.vout.try_into().unwrap())
+        .unwrap();
       let amount = output.value;
       let content_type = index
         .get_inscription_by_id(inscription)?
-        .ok_or_else(|| anyhow!("inscription {inscription} not found"))?.content_type().unwrap().to_string();
+        .ok_or_else(|| anyhow!("inscription {inscription} not found"))?
+        .content_type()
+        .unwrap()
+        .to_string();
       let address = options.chain().address_from_script(&output.script_pubkey)?;
       if index_has_sats {
         print_json(OutputWithSatWithAddress {
@@ -165,9 +168,7 @@ impl Inscriptions {
       let entry = index
         .get_inscription_entry(inscription)?
         .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
-      let location = index
-            .get_inscription_satpoint_by_id(inscription)?
-            .unwrap();
+      let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
       if index_has_sats {
         output_with_sat.push(OutputWithSat {
           sat: entry.sat.unwrap(),

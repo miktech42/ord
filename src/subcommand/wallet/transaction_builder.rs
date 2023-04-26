@@ -265,8 +265,10 @@ impl TransactionBuilder {
       return Err(Error::DuplicateAddress(change[0].clone()));
     }
 
-    if max_inputs.is_some() && max_inputs.unwrap() < 1 {
-      return Err(Error::TooManyInputs(max_inputs.unwrap()));
+    if let Some(max_inputs) = max_inputs {
+      if max_inputs < 1 {
+        return Err(Error::TooManyInputs(max_inputs));
+      }
     }
 
     Ok(Self {

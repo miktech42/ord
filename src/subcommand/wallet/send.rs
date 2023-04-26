@@ -28,7 +28,10 @@ pub(crate) struct Send {
     help = "Maximum amount of postage to include in the sent output. Default `20000 sats`"
   )]
   pub(crate) max_postage: Option<Amount>,
-  #[clap(long, help = "Use at most <MAX_INPUTS> inputs to build the transaction sending a satpoint or an inscription.")]
+  #[clap(
+    long,
+    help = "Use at most <MAX_INPUTS> inputs to build the transaction sending a satpoint or an inscription."
+  )]
   pub(crate) max_inputs: Option<usize>,
 }
 

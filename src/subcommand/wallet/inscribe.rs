@@ -17,8 +17,10 @@ use {
   bitcoincore_rpc::Client,
   bitcoincore_rpc::RawTx,
   std::collections::BTreeSet,
-  std::{thread, time},
+  std::fs::File,
   std::io::Write,
+  std::io::{BufRead, BufReader},
+  std::{thread, time},
 };
 
 #[derive(Deserialize)]
@@ -69,7 +71,10 @@ pub(crate) struct Inscribe {
   pub(crate) no_backup: bool,
   #[clap(long, help = "Do not broadcast any transactions.")]
   pub(crate) no_broadcast: bool,
-  #[clap(long, help = "Wait for the commit tx to confirm before sending reveal txs.")]
+  #[clap(
+    long,
+    help = "Wait for the commit tx to confirm before sending reveal txs."
+  )]
   pub(crate) wait_after_commit: bool,
   #[clap(
     long,
@@ -89,21 +94,72 @@ pub(crate) struct Inscribe {
     help = "Amount of postage to include in the inscription. Default `10000 sats`"
   )]
   pub(crate) postage: Option<Amount>,
-  #[clap(long, help = "Use at most <MAX_INPUTS> inputs to build the commit transaction.")]
+  #[clap(
+    long,
+    help = "Use at most <MAX_INPUTS> inputs to build the commit transaction."
+  )]
   pub(crate) max_inputs: Option<usize>,
+  #[clap(
+    long,
+    help = "Location of a CSV file to use for a combination of DESTINATION and FILE NAMES.  Should be structured `destination,file`."
+  )]
+  pub(crate) destination_csv: Option<PathBuf>,
 }
 
 impl Inscribe {
   pub(crate) fn run(self, options: Options) -> Result {
     let mut inscription = Vec::new();
-    for file in self.files {
-      inscription.push(Inscription::from_file(options.chain(), file)?);
+    let mut destinations = Vec::new();
+
+    let mut client = options.bitcoin_rpc_client_for_wallet_command(false)?;
+
+    if let Some(destination_csv) = self.destination_csv {
+      if !self.files.is_empty() {
+        return Err(anyhow!(
+          "Cannot use both --destination-csv and provide files"
+        ));
+      } else if self.destination.is_some() {
+        return Err(anyhow!(
+          "Cannot use both --destination-csv and --destination"
+        ));
+      }
+
+      let destination_csv_ref = &destination_csv;
+      let file = File::open(destination_csv_ref)?;
+      let reader = BufReader::new(file);
+      for line in reader.lines() {
+        let line = line?;
+        let mut split = line.split(',');
+        let destination = split.next().ok_or_else(|| {
+          anyhow!(
+            "Destination CSV file {} is not formatted correctly",
+            destination_csv_ref.display()
+          )
+        })?;
+        let file = split.next().ok_or_else(|| {
+          anyhow!(
+            "Destination CSV file {} is not formatted correctly",
+            destination_csv.display()
+          )
+        })?;
+        let file = PathBuf::from(file);
+        inscription.push(Inscription::from_file(options.chain(), file)?);
+        destinations.push(Address::from_str(destination)?);
+      }
+    } else {
+      for file in self.files {
+        inscription.push(Inscription::from_file(options.chain(), file)?);
+      }
+      destinations.push(
+        self
+          .destination
+          .map(Ok)
+          .unwrap_or_else(|| get_change_address(&client))?,
+      );
     }
 
     let index = Index::open(&options)?;
     index.update()?;
-
-    let mut client = options.bitcoin_rpc_client_for_wallet_command(false)?;
 
     let mut utxos = if self.coin_control {
       BTreeMap::new()
@@ -124,11 +180,6 @@ impl Inscribe {
 
     let commit_tx_change = [get_change_address(&client)?, get_change_address(&client)?];
 
-    let reveal_tx_destination = self
-      .destination
-      .map(Ok)
-      .unwrap_or_else(|| get_change_address(&client))?;
-
     tprintln!("[create_inscription_transactions]");
     let (satpoint, unsigned_commit_tx, reveal_txs, recovery_key_pairs) =
       Inscribe::create_inscription_transactions(
@@ -138,7 +189,7 @@ impl Inscribe {
         options.chain().network(),
         utxos.clone(),
         commit_tx_change,
-        reveal_tx_destination,
+        destinations,
         self.alignment,
         self.commit_fee_rate.unwrap_or(self.fee_rate),
         self.fee_rate,
@@ -229,13 +280,13 @@ impl Inscribe {
         })?;
       }
 
-      if !self.no_broadcast {
-        if !self.no_backup {
-          for recovery_key_pair in recovery_key_pairs {
-            Inscribe::backup_recovery_key(&client, recovery_key_pair, options.chain().network())?;
-          }
+      if !self.no_backup {
+        for recovery_key_pair in recovery_key_pairs {
+          Inscribe::backup_recovery_key(&client, recovery_key_pair, options.chain().network())?;
         }
+      }
 
+      if !self.no_broadcast {
         let commit = client
           .send_raw_transaction(&signed_raw_commit_tx)
           .context("Failed to send commit transaction")?;
@@ -250,7 +301,7 @@ impl Inscribe {
             thread::sleep(time::Duration::from_secs(60));
             match options.bitcoin_rpc_client_for_wallet_command(false) {
               Ok(client) => {
-                if failed == true {
+                if failed {
                   eprintln!("[reconnected]");
                   failed = false;
                 }
@@ -344,7 +395,7 @@ impl Inscribe {
     network: Network,
     utxos: BTreeMap<OutPoint, Amount>,
     change: [Address; 2],
-    destination: Address,
+    destinations: Vec<Address>,
     alignment: Option<Address>,
     commit_fee_rate: FeeRate,
     reveal_fee_rate: FeeRate,
@@ -391,7 +442,7 @@ impl Inscribe {
     let mut taproot_spend_infos = Vec::new();
 
     tprintln!("[make reveals]");
-    for inscription in inscription {
+    for (i, inscription) in inscription.iter().enumerate() {
       let secp256k1 = Secp256k1::new();
       let key_pair = UntweakedKeyPair::new(&secp256k1, &mut rand::thread_rng());
       let (public_key, _parity) = XOnlyPublicKey::from_keypair(&key_pair);
@@ -424,7 +475,7 @@ impl Inscribe {
         reveal_fee_rate,
         OutPoint::null(),
         TxOut {
-          script_pubkey: destination.script_pubkey(),
+          script_pubkey: destinations[i % destinations.len()].script_pubkey(),
           value: 0,
         },
         &reveal_script,
@@ -452,13 +503,16 @@ impl Inscribe {
 
     tprintln!("[remake reveals]");
     let mut n = 0;
-    for ((((control_block, reveal_script), key_pair), taproot_spend_info), commit_tx_address) in
-      control_blocks
-        .iter()
-        .zip(reveal_scripts)
-        .zip(key_pairs)
-        .zip(taproot_spend_infos)
-        .zip(commit_tx_addresses)
+    for (
+      i,
+      ((((control_block, reveal_script), key_pair), taproot_spend_info), commit_tx_address),
+    ) in control_blocks
+      .iter()
+      .zip(reveal_scripts)
+      .zip(key_pairs)
+      .zip(taproot_spend_infos)
+      .zip(commit_tx_addresses)
+      .enumerate()
     {
       let (vout, output) = unsigned_commit_tx
         .output
@@ -475,7 +529,7 @@ impl Inscribe {
           vout: vout.try_into().unwrap(),
         },
         TxOut {
-          script_pubkey: destination.script_pubkey(),
+          script_pubkey: destinations[i % destinations.len()].script_pubkey(),
           value: output.value,
         },
         &reveal_script,
@@ -632,7 +686,7 @@ mod tests {
     let utxos = vec![(outpoint(1), Amount::from_sat(20000))];
     let inscription = inscription("text/plain", "ord");
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     let (_satpoint, commit_tx, reveal_tx, _private_key) =
       Inscribe::create_inscription_transactions(
@@ -646,7 +700,7 @@ mod tests {
         None,
         FeeRate::try_from(1.0).unwrap(),
         FeeRate::try_from(1.0).unwrap(),
-      None,
+        None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       )
@@ -667,7 +721,7 @@ mod tests {
     let utxos = vec![(outpoint(1), Amount::from_sat(20000))];
     let inscription = inscription("text/plain", "ord");
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     let (_satpoint, commit_tx, reveal_tx, _) = Inscribe::create_inscription_transactions(
       Some(satpoint(1, 0)),
@@ -705,7 +759,7 @@ mod tests {
     let inscription = inscription("text/plain", "ord");
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     let error = Inscribe::create_inscription_transactions(
       satpoint,
@@ -750,7 +804,7 @@ mod tests {
     let inscription = inscription("text/plain", "ord");
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     assert!(Inscribe::create_inscription_transactions(
       satpoint,
@@ -788,7 +842,7 @@ mod tests {
     let inscription = inscription("text/plain", "ord");
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
     let fee_rate = 3.3;
 
     let (_satpoint, commit_tx, reveal_tx, _private_key) =
@@ -853,7 +907,7 @@ mod tests {
     let inscription = inscription("text/plain", "ord");
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
     let commit_fee_rate = 3.3;
     let fee_rate = 1.0;
 
@@ -908,7 +962,7 @@ mod tests {
     let inscription = inscription("text/plain", [0; MAX_STANDARD_TX_WEIGHT as usize]);
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     let error = Inscribe::create_inscription_transactions(
       satpoint,
@@ -942,7 +996,7 @@ mod tests {
     let inscription = inscription("text/plain", [0; MAX_STANDARD_TX_WEIGHT as usize]);
     let satpoint = None;
     let commit_address = change(0);
-    let reveal_address = recipient();
+    let reveal_address = vec![recipient()];
 
     let (_satpoint, _commit_tx, reveal_tx, _private_key) =
       Inscribe::create_inscription_transactions(
