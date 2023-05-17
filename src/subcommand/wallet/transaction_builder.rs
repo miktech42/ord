@@ -377,10 +377,7 @@ impl TransactionBuilder {
         (
           match self.alignment.clone() {
             Some(alignment) => alignment,
-            None => self
-              .unused_change_addresses
-              .pop()
-              .expect("not enough change addresses"),
+            None => self.unused_change_addresses[0].clone(),
           },
           Amount::from_sat(sat_offset),
         ),
@@ -550,13 +547,9 @@ impl TransactionBuilder {
       {
         tprintln!("stripped {} sats", (value - target).to_sat());
         self.outputs.last_mut().expect("no outputs found").1 -= value - target;
-        self.outputs.push((
-          self
-            .unused_change_addresses
-            .pop()
-            .expect("not enough change addresses"),
-          value - target,
-        ));
+        self
+          .outputs
+          .push((self.unused_change_addresses[1].clone(), value - target));
       }
     }
 
@@ -1099,7 +1092,7 @@ mod tests {
         version: 1,
         lock_time: PackedLockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2))],
-        output: vec![tx_out(4_950, change(1)), tx_out(4_862, recipient())],
+        output: vec![tx_out(4_950, change(0)), tx_out(4_862, recipient())],
       })
     )
   }
@@ -1174,12 +1167,12 @@ mod tests {
         lock_time: PackedLockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2))],
         output: vec![
-          tx_out(4_950, change(1)),
+          tx_out(4_950, change(0)),
           tx_out(
             TransactionBuilder::DEFAULT_TARGET_POSTAGE.to_sat(),
             recipient()
           ),
-          tx_out(14_831, change(0)),
+          tx_out(14_831, change(1)),
         ],
       })
     )
@@ -1388,7 +1381,7 @@ mod tests {
         version: 1,
         lock_time: PackedLockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
-        output: vec![tx_out(3_333, change(1)), tx_out(6_537, recipient())],
+        output: vec![tx_out(3_333, change(0)), tx_out(6_537, recipient())],
       })
     )
   }
@@ -1417,7 +1410,7 @@ mod tests {
         version: 1,
         lock_time: PackedLockTime::ZERO,
         input: vec![tx_in(outpoint(2)), tx_in(outpoint(1))],
-        output: vec![tx_out(10_001, change(1)), tx_out(9_811, recipient())],
+        output: vec![tx_out(10_001, change(0)), tx_out(9_811, recipient())],
       })
     )
   }
@@ -2115,7 +2108,7 @@ mod tests {
     assert_eq!(
       tx_builder.outputs,
       [
-        (change(1), Amount::from_sat(101 + 104 + 105 + 1)),
+        (change(0), Amount::from_sat(101 + 104 + 105 + 1)),
         (recipient(), Amount::from_sat(19_999))
       ]
     )

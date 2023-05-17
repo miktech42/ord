@@ -18,6 +18,8 @@ pub(crate) struct Send {
   fee_rate: FeeRate,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
   pub(crate) alignment: Option<Address>,
+  #[clap(long, help = "Send any change output to <CHANGE>.")]
+  pub(crate) change: Option<Address>,
   #[clap(
     long,
     help = "Target amount of postage to include in the sent output. Default `10000 sats`"
@@ -104,7 +106,13 @@ impl Send {
       }
     };
 
-    let change = [get_change_address(&client)?, get_change_address(&client)?];
+    let change = [
+      get_change_address(&client)?,
+      match self.change {
+        Some(change) => change,
+        None => get_change_address(&client)?,
+      },
+    ];
 
     let unsigned_transaction = TransactionBuilder::build_transaction_with_postage(
       satpoint,

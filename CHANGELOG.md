@@ -1,6 +1,16 @@
 Changelog
 =========
 
+[0.5.2-gm5](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm5) - 2023-05-17
+--------------------------------------------------------------------------------
+
+### Added
+- Add `--change` flag to `wallet send` and `wallet inscribe` to say where any change will be sent.
+- Merged in latest master branch from casey's repo, including new flags `--bitcoin-rpc-user` and `--bitcoin-rpc-pass`.
+
+### Changed
+- Ignore BOM (byte order marker) in .csv files.
+
 [0.5.2-gm4](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm4) - 2023-04-26
 --------------------------------------------------------------------------------
 

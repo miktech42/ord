@@ -83,12 +83,17 @@ pub(crate) struct Inscribe {
   pub(crate) no_limit: bool,
   #[clap(long, help = "Don't sign or broadcast transactions.")]
   pub(crate) dry_run: bool,
-  #[clap(long, help = "Dump raw hex transactions instead of sending them.")]
+  #[clap(
+    long,
+    help = "Dump raw hex transactions and recovery keys to standard output."
+  )]
   pub(crate) dump: bool,
   #[clap(long, help = "Send inscription to <DESTINATION>.")]
   pub(crate) destination: Vec<Address>,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
   pub(crate) alignment: Option<Address>,
+  #[clap(long, help = "Send any change output to <CHANGE>.")]
+  pub(crate) change: Option<Address>,
   #[clap(
     long,
     help = "Amount of postage to include in the inscription. Default `10000 sats`"
@@ -115,20 +120,16 @@ impl Inscribe {
 
     if let Some(csv) = self.csv {
       if !self.files.is_empty() {
-        return Err(anyhow!(
-          "Cannot use both --csv and provide files"
-        ));
+        return Err(anyhow!("Cannot use both --csv and provide files"));
       } else if !self.destination.is_empty() {
-        return Err(anyhow!(
-          "Cannot use both --csv and --destination"
-        ));
+        return Err(anyhow!("Cannot use both --csv and --destination"));
       }
 
       let file = File::open(&csv)?;
       let reader = BufReader::new(file);
       for line in reader.lines() {
         let line = line?;
-        let mut split = line.split(',');
+        let mut split = line.trim_start_matches("\u{feff}").split(',');
         let destination = split.next().ok_or_else(|| {
           anyhow!(
             "Destination CSV file {} is not formatted correctly",
@@ -151,23 +152,25 @@ impl Inscribe {
       }
       if self.destination.is_empty() {
         for _ in self.files {
-          destinations.push(
-            get_change_address(&client)?);
+          destinations.push(get_change_address(&client)?);
         }
       } else {
         destinations = self.destination;
       }
     }
 
+    tprintln!("[update index]");
     let index = Index::open(&options)?;
     index.update()?;
 
+    tprintln!("[get utxos]");
     let mut utxos = if self.coin_control {
       BTreeMap::new()
     } else {
       index.get_unspent_outputs(Wallet::load(&options)?)?
     };
 
+    tprintln!("[insert utxos]");
     for outpoint in &self.utxo {
       utxos.insert(
         *outpoint,
@@ -177,9 +180,17 @@ impl Inscribe {
       );
     }
 
+    tprintln!("[get inscriptions]");
     let inscriptions = index.get_inscriptions(None)?;
 
-    let commit_tx_change = [get_change_address(&client)?, get_change_address(&client)?];
+    tprintln!("[get change]");
+    let commit_tx_change = [
+      get_change_address(&client)?,
+      match self.change {
+        Some(change) => change,
+        None => get_change_address(&client)?,
+      },
+    ];
 
     tprintln!("[create_inscription_transactions]");
     let (satpoint, unsigned_commit_tx, reveal_txs, recovery_key_pairs) =
