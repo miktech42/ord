@@ -181,7 +181,7 @@ impl Inscribe {
     }
 
     tprintln!("[get inscriptions]");
-    let inscriptions = index.get_inscriptions(None)?;
+    let inscriptions = index.get_inscriptions(utxos.clone())?;
 
     tprintln!("[get change]");
     let commit_tx_change = [

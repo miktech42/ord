@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.5.2-gm6](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm6) - 2023-05-23
+--------------------------------------------------------------------------------
+
+### Changed
+- Speed wallet commands up by only fetching relevant inscriptions from the database.
+
 [0.5.2-gm5](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm5) - 2023-05-17
 --------------------------------------------------------------------------------
 
