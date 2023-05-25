@@ -109,6 +109,10 @@ pub(crate) struct Inscribe {
     help = "Location of a CSV file to use for a combination of DESTINATION and FILE NAMES.  Should be structured `destination,file`."
   )]
   pub(crate) csv: Option<PathBuf>,
+  #[clap(long, help = "Create a 'cursed' inscription (with an unknown even 0x42 tag)")]
+  pub(crate) cursed: bool,
+  #[clap(long, help = "Allow inscription on sats that are already inscribed.")]
+  pub(crate) allow_reinscribe: bool,
 }
 
 impl Inscribe {
@@ -157,6 +161,10 @@ impl Inscribe {
       } else {
         destinations = self.destination;
       }
+    }
+
+    if inscription.is_empty() {
+      return Err(anyhow!("Provide at least one file to inscribe"));
     }
 
     tprintln!("[update index]");
@@ -211,6 +219,8 @@ impl Inscribe {
           Some(postage) => postage,
           _ => TransactionBuilder::DEFAULT_TARGET_POSTAGE,
         },
+        self.cursed,
+        self.allow_reinscribe,
       )?;
 
     tprintln!("[sign commit]");
@@ -414,6 +424,8 @@ impl Inscribe {
     max_inputs: Option<usize>,
     no_limit: bool,
     postage: Amount,
+    cursed: bool,
+    allow_reinscribe: bool,
   ) -> Result<(SatPoint, Transaction, Vec<Transaction>, Vec<TweakedKeyPair>)> {
     let satpoint = if let Some(satpoint) = satpoint {
       satpoint
@@ -435,10 +447,10 @@ impl Inscribe {
 
     for (inscribed_satpoint, inscription_id) in &inscriptions {
       if inscribed_satpoint == &satpoint {
-        return Err(anyhow!("sat at {} already inscribed", satpoint));
-      }
-
-      if inscribed_satpoint.outpoint == satpoint.outpoint {
+        if !allow_reinscribe {
+          return Err(anyhow!("sat at {} already inscribed", satpoint));
+        }
+      } else if inscribed_satpoint.outpoint == satpoint.outpoint {
         return Err(anyhow!(
           "utxo {} already inscribed with inscription {inscription_id} on sat {inscribed_satpoint}",
           satpoint.outpoint,
@@ -464,6 +476,7 @@ impl Inscribe {
         script::Builder::new()
           .push_slice(&public_key.serialize())
           .push_opcode(opcodes::all::OP_CHECKSIG),
+        cursed,
       );
 
       let taproot_spend_info = TaprootBuilder::new()
@@ -715,6 +728,8 @@ mod tests {
         None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
       )
       .unwrap();
 
@@ -749,6 +764,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
     )
     .unwrap();
 
@@ -787,6 +804,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
     )
     .unwrap_err()
     .to_string();
@@ -832,6 +851,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
     )
     .is_ok())
   }
@@ -872,6 +893,8 @@ mod tests {
         None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
       )
       .unwrap();
 
@@ -938,6 +961,8 @@ mod tests {
         None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
       )
       .unwrap();
 
@@ -990,6 +1015,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
     )
     .unwrap_err()
     .to_string();
@@ -1025,6 +1052,8 @@ mod tests {
         None,
         true,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
       )
       .unwrap();
 

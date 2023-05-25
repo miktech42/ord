@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[0.5.2-gm8](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm8) - 2023-05-24
+--------------------------------------------------------------------------------
+
+### Added
+- Add `--allow-reinscribe` to `wallet inscribe` to allow reinscribing on a sat that already has an inscription. `ord` won't recognize such an inscription yet but apparently there are plans to assign such inscriptions negative inscription numbers. It's best to store such inscriptions in a separate wallet until `ord` recognizes them to avoid accidentally spending them. At the time of writing not even cursedordinals.com recognizes inscriptions on sats that are already inscribed.
+
+[0.5.2-gm7](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm7) - 2023-05-24
+--------------------------------------------------------------------------------
+
+### Added
+- Add `--cursed` to `wallet inscribe` to create an inscription that won't be recognized by current versions of ord, but that will be recognized by some indexers as "cursed".
+
 [0.5.2-gm6](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm6) - 2023-05-23
 --------------------------------------------------------------------------------
 
