@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.5.2-gm9](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm9) - 2023-05-30
+--------------------------------------------------------------------------------
+
+### Changed
+- Check that at least one filename is provided when inscribing.
+- Merged in latest master branch from casey's repo, including "Unbind inscriptions from zero-sat transactions (#2107)".
+
 [0.5.2-gm8](https://github.com/gmart7t2/ord/releases/tag/0.5.2-gm8) - 2023-05-24
 --------------------------------------------------------------------------------
 
@@ -58,7 +65,7 @@ Changelog
 ### Added
 - Add `--id` and `--number` flags to `ord inscriptions` to list specific inscriptions by inscriptionid or by inscription number.
 
-[0.5.2](https://github.com/casey/ord/releases/tag/0.5.2) - 2023-04-17
+[0.5.2](https://github.com/ordinals/ord/releases/tag/0.5.2) - 2023-04-17
 ---------------------------------------------------------------------
 
 ### Added
@@ -249,7 +256,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Use `--fee-rate` to set the fee when sending cardinals (#1922)
 - Fix an obscure error when sending satpoint `x:x:300` to a segwit bech32 address (#1929)
 
-[0.5.1](https://github.com/casey/ord/releases/tag/0.5.1) - 2023-02-21
+[0.5.1](https://github.com/ordinals/ord/releases/tag/0.5.1) - 2023-02-21
 ---------------------------------------------------------------------
 
 ### Performance
@@ -274,7 +281,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Fix changelog dates: 2022 → 2023 (#1700)
 - Bump version number (#1695)
 
-[0.5.0](https://github.com/casey/ord/releases/tag/0.5.0) - 2023-02-11
+[0.5.0](https://github.com/ordinals/ord/releases/tag/0.5.0) - 2023-02-11
 ---------------------------------------------------------------------
 
 ### Breaking Changes
@@ -340,7 +347,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Avoid listening on 0.0.0.0 in tests (#1365)
 - Rename `GitHub` nav link to `Wallet` (#1360)
 
-[0.4.2](https://github.com/casey/ord/releases/tag/0.4.2) - 2023-01-24
+[0.4.2](https://github.com/ordinals/ord/releases/tag/0.4.2) - 2023-01-24
 ---------------------------------------------------------------------
 
 ### Changed
@@ -352,7 +359,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 ### Misc
 - Fix guide typo: getblockchount -> getblockcount (#1354)
 
-[0.4.1](https://github.com/casey/ord/releases/tag/0.4.1) - 2023-01-24
+[0.4.1](https://github.com/ordinals/ord/releases/tag/0.4.1) - 2023-01-24
 ---------------------------------------------------------------------
 
 ### Added
@@ -383,7 +390,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Serve favicon as PNG to Safari and SVG others (#1302)
 - Use sans-serif font for height on clock (#1300)
 
-[0.4.0](https://github.com/casey/ord/releases/tag/0.4.0) - 2023-01-19
+[0.4.0](https://github.com/ordinals/ord/releases/tag/0.4.0) - 2023-01-19
 ---------------------------------------------------------------------
 
 ### Added
@@ -512,7 +519,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Fix softprops/actions-gh-release version (#992)
 - Fuzz test transaction builder with multiple UTXOs (#1291)
 
-[0.3.0](https://github.com/casey/ord/releases/tag/0.3.0) - 2022-12-16
+[0.3.0](https://github.com/ordinals/ord/releases/tag/0.3.0) - 2022-12-16
 ---------------------------------------------------------------------
 
 - Update CI dependencies (#986)
@@ -520,12 +527,12 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Display content type and size /inscription (#975)
 - Use "sat" in place of "ordinal" (#979)
 
-[0.2.1](https://github.com/casey/ord/releases/tag/0.2.1) - 2022-12-14
+[0.2.1](https://github.com/ordinals/ord/releases/tag/0.2.1) - 2022-12-14
 ---------------------------------------------------------------------
 
 - Revise inscription guide after mainnet walkthrough (#968)
 
-[0.2.0](https://github.com/casey/ord/releases/tag/0.2.0) - 2022-12-14
+[0.2.0](https://github.com/ordinals/ord/releases/tag/0.2.0) - 2022-12-14
 ---------------------------------------------------------------------
 
 - Add `ord wallet create` (#958)
@@ -616,13 +623,13 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Remove old recipes from justfile (#718)
 - Update roadmap (#722)
 
-[0.1.0](https://github.com/casey/ord/releases/tag/0.1.0) - 2022-10-25
+[0.1.0](https://github.com/ordinals/ord/releases/tag/0.1.0) - 2022-10-25
 ---------------------------------------------------------------------
 
 - Add index updater (#703)
 - Speed up rarity check while indexing (#702)
 
-[0.0.6](https://github.com/casey/ord/releases/tag/0.0.6) - 2022-10-25
+[0.0.6](https://github.com/ordinals/ord/releases/tag/0.0.6) - 2022-10-25
 ---------------------------------------------------------------------
 
 - Switch to ord-bitcoincore-rpc (#707)
@@ -697,7 +704,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Add ordinal hunting how-to docs page (#596)
 - Fix bounty example links (#595)
 
-[0.0.5](https://github.com/casey/ord/releases/tag/0.0.5) - 2022-10-02
+[0.0.5](https://github.com/ordinals/ord/releases/tag/0.0.5) - 2022-10-02
 ---------------------------------------------------------------------
 
 - Add bitcoin.conf (#592)
@@ -727,7 +734,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Convert block and transaction integration tests to unit tests (#560)
 - Fix release script (#562)
 
-[0.0.4](https://github.com/casey/ord/releases/tag/0.0.4) - 2022-09-26
+[0.0.4](https://github.com/ordinals/ord/releases/tag/0.0.4) - 2022-09-26
 ---------------------------------------------------------------------
 
 - Add more links and labels to clocks (#552)
@@ -891,7 +898,7 @@ Also, if running ord using an ssh connection you might consider running it insid
 - Add nix flake (#214)
 - Build binaries for releases (#213)
 
-[0.0.1](https://github.com/casey/ord/releases/tag/0.0.1) - 2022-06-05
+[0.0.1](https://github.com/ordinals/ord/releases/tag/0.0.1) - 2022-06-05
 ---------------------------------------------------------------------
 
 - Add commands to mint and verify NFTs (#211)
