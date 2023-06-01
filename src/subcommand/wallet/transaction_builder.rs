@@ -48,6 +48,10 @@ pub enum Error {
     output_value: Amount,
     dust_value: Amount,
   },
+  MaxPostageLessThanTarget {
+    max_postage: Amount,
+    target_postage: Amount,
+  },
   NotEnoughCardinalUtxos,
   NotInWallet(SatPoint),
   OutOfRange(SatPoint, u64),
@@ -73,6 +77,7 @@ impl fmt::Display for Error {
         output_value,
         dust_value,
       } => write!(f, "output value is below dust value: {output_value} < {dust_value}"),
+      Error::MaxPostageLessThanTarget {max_postage, target_postage} => write!(f, "max postage {} sats is less than target postage {} sats", max_postage.to_sat(), target_postage.to_sat()),
       Error::NotInWallet(outgoing_satpoint) => write!(f, "outgoing satpoint {outgoing_satpoint} not in wallet"),
       Error::OutOfRange(outgoing_satpoint, maximum) => write!(f, "outgoing satpoint {outgoing_satpoint} offset higher than maximum {maximum}"),
       Error::TooManyInputs(max_inputs) => write!(f, "--max-inputs ({max_inputs}) exceeded"),
@@ -138,6 +143,13 @@ impl TransactionBuilder {
     target_postage: Amount,
     max_postage: Amount,
   ) -> Result<Transaction> {
+    if max_postage < target_postage {
+      return Err(Error::MaxPostageLessThanTarget {
+        max_postage,
+        target_postage,
+      });
+    }
+
     Self::new(
       outgoing,
       inscriptions,
