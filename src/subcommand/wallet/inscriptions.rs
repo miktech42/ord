@@ -3,7 +3,7 @@ use {super::*, crate::wallet::Wallet};
 #[derive(Serialize, Deserialize)]
 pub struct OutputWithSat {
   pub sat: Sat,
-  pub number: u64,
+  pub number: i64,
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub explorer: String,
@@ -12,7 +12,7 @@ pub struct OutputWithSat {
 
 #[derive(Serialize, Deserialize)]
 pub struct OutputWithoutSat {
-  pub number: u64,
+  pub number: i64,
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub explorer: String,

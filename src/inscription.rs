@@ -61,8 +61,8 @@ impl Inscription {
     result
   }
 
-  pub(crate) fn from_witness(witness: &Witness) -> Option<Inscription> {
-    InscriptionParser::parse(witness).ok()
+  pub(crate) fn from_witness(witness: &Witness) -> Result<Vec<Inscription>> {
+    InscriptionParser::parse(witness)
   }
 
   pub(crate) fn from_file(chain: Chain, path: impl AsRef<Path>) -> Result<Self, Error> {

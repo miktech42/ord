@@ -801,7 +801,7 @@ impl Index {
   pub(crate) fn get_inscriptions_by_sat(
     &self,
     n: Option<usize>,
-    max_number: Option<u64>,
+    max_number: Option<i64>,
     max_height: Option<u64>,
     max_sat: Option<Sat>,
     uncommon: bool,
@@ -837,7 +837,7 @@ impl Index {
   pub(crate) fn get_inscriptions_by_inscription_number(
     &self,
     n: Option<usize>,
-    max_number: Option<u64>,
+    max_number: Option<i64>,
     max_height: Option<u64>,
     max_sat: Option<Sat>,
     uncommon: bool,
@@ -847,7 +847,7 @@ impl Index {
         .database
         .begin_read()?
         .open_table(INSCRIPTION_NUMBER_TO_INSCRIPTION_ID)?
-        .range::<u64>(0..)?
+        .range::<i64>(0..)?
         .map(|(_sat, id)| Entry::load(*id.value()))
         .filter_map(|id| {
           let entry = self.get_inscription_entry(id).unwrap().unwrap();

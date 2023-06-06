@@ -5,13 +5,13 @@ pub(crate) struct Inscriptions {
   #[clap(long, help = "Maximum number of inscriptions to list")]
   limit: Option<usize>,
   #[clap(long, help = "Maximum inscription number to list")]
-  max_number: Option<u64>,
+  max_number: Option<i64>,
   #[clap(long, help = "Maximum inscription block height to list")]
   max_height: Option<u64>,
   #[clap(long, help = "Maximum sat number to list")]
   max_sat: Option<Sat>,
   #[clap(long, help = "Specific single inscription number to show")]
-  number: Option<u64>,
+  number: Option<i64>,
   #[clap(long, help = "Specific single inscription id to show")]
   id: Option<InscriptionId>,
   #[clap(long, help = "Only list inscriptions on uncommon sats or rarer.")]
@@ -26,7 +26,7 @@ pub(crate) struct Inscriptions {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithSatWithAddress {
   pub sat: Sat,
-  pub number: u64,
+  pub number: i64,
   pub height: u64,
   pub timestamp: u32,
   pub inscription: InscriptionId,
@@ -38,7 +38,7 @@ pub struct OutputWithSatWithAddress {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithoutSatWithAddress {
-  pub number: u64,
+  pub number: i64,
   pub height: u64,
   pub timestamp: u32,
   pub inscription: InscriptionId,
@@ -51,7 +51,7 @@ pub struct OutputWithoutSatWithAddress {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithSat {
   pub sat: Sat,
-  pub number: u64,
+  pub number: i64,
   pub height: u64,
   pub timestamp: u32,
   pub inscription: InscriptionId,
@@ -60,7 +60,7 @@ pub struct OutputWithSat {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithoutSat {
-  pub number: u64,
+  pub number: i64,
   pub height: u64,
   pub timestamp: u32,
   pub inscription: InscriptionId,

@@ -22,19 +22,16 @@ impl Decode {
       bail!("<VIN> too high - there are only {} input(s)", inputs.len());
     }
     let input = &inputs[vin];
-    match Inscription::from_witness(&input.witness) {
-      Some(inscription) => {
-        fs::OpenOptions::new()
-          .create(true)
-          .write(true)
-          .truncate(true)
-          .open("file.dat")?
-          .write_all(inscription.body().unwrap())?;
+    for inscription in Inscription::from_witness(&input.witness).unwrap() {
+      fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open("file.dat")?
+        .write_all(inscription.body().unwrap())?;
 
-        println!("content-type: {}", inscription.content_type().unwrap());
-        println!("body written to file.dat");
-      }
-      None => bail!("No inscription on that input"),
+      println!("content-type: {}", inscription.content_type().unwrap());
+      println!("body written to file.dat");
     }
     Ok(())
   }
