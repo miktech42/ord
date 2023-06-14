@@ -724,18 +724,6 @@ impl TransactionBuilder {
     }
     assert!(found, "invariant: outgoing sat is found in outputs");
 
-    for recipient in self.recipient.iter() {
-      assert_eq!(
-        transaction
-          .output
-          .iter()
-          .filter(|tx_out| tx_out.script_pubkey == recipient.script_pubkey())
-          .count(),
-        1,
-        "invariant: recipient address appears exactly once in outputs",
-      );
-    }
-
     assert!(
       self
         .change_addresses

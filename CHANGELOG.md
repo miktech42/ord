@@ -1,11 +1,37 @@
 Changelog
 =========
 
-[0.6.0-gm1](https://github.com/gmart7t2/ord/releases/tag/0.6.0-gm1) - 2023-06-05
+[0.6.1-gm4](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm4) - 2023-06-14
 --------------------------------------------------------------------------------
 
 ### Changed
-- Merged in release 0.6.0 from upstream.
+- Merged "Recursive Inscriptions (#2167)" from upstream.
+
+[0.6.1-gm3](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm3) - 2023-06-14
+--------------------------------------------------------------------------------
+
+### Changed
+- Add `--single-key` flag to `wallet inscribe` to use the same temporary private key for all inscriptions.
+- Remove the `--wait-after-commit` flag from `wallet inscribe`. It's too hard to use safely. Instead, use `--dump --no_broadcast --no_backup`, save the output to a file, and broadcast the transactions manually.
+
+[0.6.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm2) - 2023-06-14
+--------------------------------------------------------------------------------
+
+### Changed
+- Give a reasonable error message when `ord inscriptions --id <inscriptionid>` fails to find the inscription.
+
+[0.6.1-gm1](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm1) - 2023-06-07
+--------------------------------------------------------------------------------
+
+### Changed
+- Merged in releases 0.6.0 and 0.6.1 from upstream.
+
+[0.6.1](https://github.com/ordinals/ord/releases/tag/0.6.1) - 2023-06-06
+---------------------------------------------------------------------
+
+### Changed 
+- Fix sat index test and unbound assignment (#2154)
+- Updated install.sh for new repo name (#2155)
 
 [0.6.0](https://github.com/ordinals/ord/releases/tag/0.6.0) - 2023-06-04
 ---------------------------------------------------------------------

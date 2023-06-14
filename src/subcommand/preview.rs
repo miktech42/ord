@@ -82,7 +82,6 @@ impl Preview {
           files: self.inscriptions,
           no_backup: true,
           no_broadcast: false,
-          wait_after_commit: false,
           satpoint: None,
           utxo: Vec::new(),
           coin_control: false,
@@ -97,6 +96,7 @@ impl Preview {
           csv: None,
           cursed: false,
           allow_reinscribe: false,
+          single_key: false,
         },
       )),
     }

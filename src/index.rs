@@ -1009,35 +1009,44 @@ impl Index {
       inscription_id,
     );
 
-    if let Some(sat) = sat {
-      if self.has_sat_index().unwrap() {
-        assert_eq!(
-          InscriptionId::load(
-            *rtx
-              .open_table(SAT_TO_INSCRIPTION_ID)
-              .unwrap()
-              .get(&sat)
-              .unwrap()
-              .unwrap()
-              .value()
-          ),
-          inscription_id,
-        );
-
-        // we do not track common sats or anything in the unbound output
-        if !Sat(sat).is_common() && satpoint.outpoint != unbound_outpoint() {
+    match sat {
+      Some(sat) => {
+        if self.has_sat_index().unwrap() {
+          // unbound inscriptions should not be assigned to a sat
+          assert!(satpoint.outpoint != unbound_outpoint());
           assert_eq!(
-            SatPoint::load(
+            InscriptionId::load(
               *rtx
-                .open_table(SAT_TO_SATPOINT)
+                .open_table(SAT_TO_INSCRIPTION_ID)
                 .unwrap()
                 .get(&sat)
                 .unwrap()
                 .unwrap()
                 .value()
             ),
-            satpoint,
+            inscription_id,
           );
+
+          // we do not track common sats (only the sat ranges)
+          if !Sat(sat).is_common() {
+            assert_eq!(
+              SatPoint::load(
+                *rtx
+                  .open_table(SAT_TO_SATPOINT)
+                  .unwrap()
+                  .get(&sat)
+                  .unwrap()
+                  .unwrap()
+                  .value()
+              ),
+              satpoint,
+            );
+          }
+        }
+      }
+      None => {
+        if self.has_sat_index().unwrap() {
+          assert!(satpoint.outpoint == unbound_outpoint())
         }
       }
     }
@@ -2360,7 +2369,7 @@ mod tests {
           outpoint: unbound_outpoint(),
           offset: 0,
         },
-        Some(50 * COIN_VALUE),
+        None, // should not be on a sat
       );
 
       assert!(context
@@ -2537,7 +2546,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 0,
         },
-        None,
+        Some(50 * COIN_VALUE),
       );
 
       context.index.assert_inscription_location(
@@ -2546,7 +2555,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 50 * COIN_VALUE,
         },
-        None,
+        Some(100 * COIN_VALUE),
       );
 
       context.index.assert_inscription_location(
@@ -2555,7 +2564,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 100 * COIN_VALUE,
         },
-        None,
+        Some(150 * COIN_VALUE),
       );
 
       assert_eq!(
@@ -2642,7 +2651,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 0,
         },
-        None,
+        Some(50 * COIN_VALUE),
       );
 
       context.index.assert_inscription_location(
@@ -2749,7 +2758,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 0,
         },
-        None,
+        Some(50 * COIN_VALUE),
       );
 
       context.index.assert_inscription_location(
@@ -2758,7 +2767,7 @@ mod tests {
           outpoint: OutPoint { txid, vout: 0 },
           offset: 50 * COIN_VALUE,
         },
-        None,
+        Some(100 * COIN_VALUE),
       );
 
       context.index.assert_inscription_location(
@@ -2901,7 +2910,7 @@ mod tests {
           },
           offset: 0,
         },
-        None,
+        Some(100 * COIN_VALUE),
       );
 
       assert_eq!(
