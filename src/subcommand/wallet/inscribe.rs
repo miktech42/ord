@@ -18,7 +18,7 @@ use {
   bitcoincore_rpc::RawTx,
   std::collections::BTreeSet,
   std::fs::File,
-  // std::io::Write,
+  std::io::Write,
   std::io::{BufRead, BufReader},
   // std::{thread, time},
 };
@@ -364,14 +364,33 @@ impl Inscribe {
           }
         }
 */
+
+        // make sure we can write to a file in the event that any of the reveals fail
+        let failed_reveals_filename = format!("failed-reveals-for-commit-{commit}.txt");
+        let file = fs::OpenOptions::new()
+          .create(true)
+          .write(true)
+          .open(&failed_reveals_filename);
+
+        if file.is_err() {
+          return Err(anyhow!("cannot write to the current directory"));
+        }
+
+        let mut file = file?;
         client = options.bitcoin_rpc_client_for_wallet_command(false)?;
         let mut reveals = Vec::new();
-        for reveal_tx in reveal_txs {
-          reveals.push(
-            client
-              .send_raw_transaction(&reveal_tx)
-              .context("Failed to send reveal transaction")?,
-          );
+        let mut failed_reveals = Vec::new();
+        for (_i, reveal_tx) in reveal_txs.iter().enumerate() {
+          match client.send_raw_transaction(reveal_tx) {
+            Ok(reveal) => {
+              // println!("ok {i}");
+              reveals.push(reveal);
+            },
+            Err(_error) => {
+              // eprintln!("Failed to send reveal transaction {i}: {:?}]", _error);
+              failed_reveals.push(reveal_tx.raw_hex());
+            }
+          };
         }
 
         print_json(Output {
@@ -381,6 +400,17 @@ impl Inscribe {
           reveals,
           fees,
         })?;
+
+        if failed_reveals.is_empty() {
+          drop(file);
+          fs::remove_file(failed_reveals_filename)?;
+        } else {
+          for tx in &failed_reveals {
+            write!(file, "{tx}\n")?;
+          }
+
+          println!("\n{} reveal{} failed - see {failed_reveals_filename}", failed_reveals.len(), if failed_reveals.len() == 1 {""} else {"s"});
+        }
       }
     }
 

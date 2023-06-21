@@ -67,6 +67,16 @@ pub struct OutputWithoutSat {
   pub location: SatPoint,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct OutputUnbound {
+  pub number: i64,
+  pub height: u64,
+  pub timestamp: u32,
+  pub inscription: InscriptionId,
+  pub location: SatPoint,
+  pub content_type: String,
+}
+
 impl Inscriptions {
   pub(crate) fn run(self, options: Options) -> Result {
     let index = Index::open(&options)?;
@@ -101,44 +111,56 @@ impl Inscriptions {
 
       let entry = index.get_inscription_entry(inscription)?.ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
       let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
-      let output = index
-        .get_transaction(location.outpoint.txid)?
-        .unwrap()
-        .output
-        .into_iter()
-        .nth(location.outpoint.vout.try_into().unwrap())
-        .unwrap();
-      let amount = output.value;
       let content_type = index
         .get_inscription_by_id(inscription)?
         .ok_or_else(|| anyhow!("inscription {inscription} not found"))?
         .content_type()
         .unwrap()
         .to_string();
-      let address = options.chain().address_from_script(&output.script_pubkey)?;
-      if index_has_sats {
-        print_json(OutputWithSatWithAddress {
-          sat: entry.sat.unwrap(),
+
+      if format!("{}", location.outpoint.txid) == "0000000000000000000000000000000000000000000000000000000000000000" {
+        print_json(OutputUnbound {
           inscription,
           location,
           number: entry.number,
           height: entry.height,
           timestamp: entry.timestamp,
-          address,
-          amount,
           content_type,
         })?;
       } else {
-        print_json(OutputWithoutSatWithAddress {
-          inscription,
-          location,
-          number: entry.number,
-          height: entry.height,
-          timestamp: entry.timestamp,
-          address,
-          amount,
-          content_type,
-        })?;
+        let output = index
+          .get_transaction(location.outpoint.txid)?
+          .unwrap()
+          .output
+          .into_iter()
+          .nth(location.outpoint.vout.try_into().unwrap())
+          .unwrap();
+        let amount = output.value;
+        let address = options.chain().address_from_script(&output.script_pubkey)?;
+        if index_has_sats {
+          print_json(OutputWithSatWithAddress {
+            sat: entry.sat.unwrap(),
+            inscription,
+            location,
+            number: entry.number,
+            height: entry.height,
+            timestamp: entry.timestamp,
+            address,
+            amount,
+            content_type,
+          })?;
+        } else {
+          print_json(OutputWithoutSatWithAddress {
+            inscription,
+            location,
+            number: entry.number,
+            height: entry.height,
+            timestamp: entry.timestamp,
+            address,
+            amount,
+            content_type,
+          })?;
+        }
       }
       return Ok(());
     }

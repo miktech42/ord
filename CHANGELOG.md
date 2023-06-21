@@ -1,6 +1,24 @@
 Changelog
 =========
 
+[0.6.2](https://github.com/ordinals/ord/releases/tag/0.6.2) - 2023-06-15
+---------------------------------------------------------------------
+
+### Added
+- Recursive endpoints: `/blockhash, /blockheight, /blocktime` (#2175)
+- Document recursion (#2174)
+- Add CSS and JavaScript media types (#2173)
+- Recursive Inscriptions (#2167)
+
+### Misc
+- Update ord dependency in lockfile (#2168)
+
+[0.6.1-gm5](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm5) - 2023-06-19
+--------------------------------------------------------------------------------
+
+### Changed
+- When making inscriptions, write any reveal transactions that fail to broadcast to a file for manual broadcast later.
+
 [0.6.1-gm4](https://github.com/gmart7t2/ord/releases/tag/0.6.1-gm4) - 2023-06-14
 --------------------------------------------------------------------------------
 
