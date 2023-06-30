@@ -22,6 +22,13 @@ const CONTENT_TYPE_TAG: &[u8] = &[1];
 const CURSED_TAG: &[u8] = &[66];
 
 #[derive(Debug, PartialEq, Clone)]
+pub(crate) enum Curse {
+  NotInFirstInput,
+  NotAtOffsetZero,
+  Reinscription,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) struct Inscription {
   body: Option<Vec<u8>>,
   content_type: Option<Vec<u8>>,

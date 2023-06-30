@@ -135,24 +135,38 @@ impl Inscribe {
 
       let file = File::open(&csv)?;
       let reader = BufReader::new(file);
+      let mut line_number=1;
       for line in reader.lines() {
         let line = line?;
         let mut split = line.trim_start_matches("\u{feff}").split(',');
         let destination = split.next().ok_or_else(|| {
           anyhow!(
-            "Destination CSV file {} is not formatted correctly",
+            "Destination CSV file '{}' is not formatted correctly",
             csv.display()
           )
         })?;
         let file = split.next().ok_or_else(|| {
           anyhow!(
-            "Destination CSV file {} is not formatted correctly",
+            "Destination CSV file '{}' is not formatted correctly - no comma on line {line_number}",
             csv.display()
           )
         })?;
+
         let file = PathBuf::from(file);
-        inscription.push(Inscription::from_file(options.chain(), file)?);
-        destinations.push(Address::from_str(destination)?);
+
+        let i = Inscription::from_file(options.chain(), &file);
+        if i.is_ok() {
+          inscription.push(i?);
+        } else {
+          i.context(format!("Error with file '{}' in CSV file {} line {line_number}", file.display(), csv.display()))?;
+        }
+
+        let address = Address::from_str(destination)?;
+        options
+          .chain()
+          .check_address_is_valid_for_network(&address)?;
+        destinations.push(address);
+        line_number += 1;
       }
     } else {
       for file in self.files.iter() {
@@ -163,6 +177,11 @@ impl Inscribe {
           destinations.push(get_change_address(&client)?);
         }
       } else {
+        for destination in &self.destination {
+          options
+            .chain()
+            .check_address_is_valid_for_network(&destination)?;
+        }
         destinations = self.destination;
       }
     }

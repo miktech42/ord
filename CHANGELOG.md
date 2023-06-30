@@ -1,6 +1,39 @@
 Changelog
 =========
 
+[0.7.0-gm2](https://github.com/gmart7t2/ord/releases/tag/0.7.0-gm2) - 2023-06-28
+--------------------------------------------------------------------------------
+
+### Changed
+- Skip updating the index completely when `--height-limit` is 0.
+
+[0.7.0-gm1](https://github.com/gmart7t2/ord/releases/tag/0.7.0-gm1) - 2023-06-24
+--------------------------------------------------------------------------------
+
+### Changed
+- Merged 0.7.0 from upstream
+
+[0.7.0](https://github.com/ordinals/ord/releases/tag/0.7.0) - 2023-06-23
+---------------------------------------------------------------------
+
+### Added
+- Tweak publish recipe (#2212)
+- Handle cursed inscriptions edge cases (#2209)
+- Add export command for <INSCRIPTION_NUMBER_TO_INSCRIPTION_ID> table (#2208)
+- Add Markdown media type (#2206)
+- Add blob urls to Content Security Policy headers (#2203)
+- Check inscribe destination address network (#2189)
+
+[0.6.2-gm1](https://github.com/gmart7t2/ord/releases/tag/0.6.2-gm1) - 2023-06-22
+--------------------------------------------------------------------------------
+
+### Changed
+- Allow `ord inscriptions` to display unbound inscriptions with positive inscription numbers.
+- Merged 0.6.2 from upstream
+- Check inscribe destination address network (#2189)
+- Improve error messages when parsing a broken CSV file
+- Complain if the user tries to use --coin-control or --utxo when sending cardinals
+
 [0.6.2](https://github.com/ordinals/ord/releases/tag/0.6.2) - 2023-06-15
 ---------------------------------------------------------------------
 
