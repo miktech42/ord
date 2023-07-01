@@ -52,6 +52,7 @@ impl Updater {
       .range(0..)?
       .rev()
       .next()
+      .and_then(|result| result.ok())
       .map(|(height, _hash)| height.value() + 1)
       .unwrap_or(0);
 
@@ -145,6 +146,7 @@ impl Updater {
           .range(0..)?
           .rev()
           .next()
+          .and_then(|result| result.ok())
           .map(|(height, _hash)| height.value() + 1)
           .unwrap_or(0);
         if height != self.height {
