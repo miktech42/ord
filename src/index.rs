@@ -925,7 +925,7 @@ impl Index {
         .database
         .begin_read()?
         .open_table(INSCRIPTION_NUMBER_TO_INSCRIPTION_ID)?
-        .range::<i64>(0..)?
+        .range::<i64>(..)?
         .flat_map(|result| result.map(|(_sat, id)| Entry::load(*id.value())))
         .filter_map(|id| {
           let entry = self.get_inscription_entry(id).unwrap().unwrap();

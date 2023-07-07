@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[0.8.0-gm3](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm1) - 2023-07-07
+--------------------------------------------------------------------------------
+
+### Changed
+- Have `ord inscriptions` list negative numbered inscriptions too
+
+[0.8.0-gm2](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm1) - 2023-07-07
+--------------------------------------------------------------------------------
+
+### Changed
+- Don't fail when listing unbound inscriptions
+
 [0.8.0-gm1](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm1) - 2023-07-01
 --------------------------------------------------------------------------------
 

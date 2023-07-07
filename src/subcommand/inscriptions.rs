@@ -25,7 +25,7 @@ pub(crate) struct Inscriptions {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithSatWithAddress {
-  pub sat: Sat,
+  pub sat: Option<Sat>,
   pub number: i64,
   pub height: u64,
   pub timestamp: u32,
@@ -50,7 +50,7 @@ pub struct OutputWithoutSatWithAddress {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OutputWithSat {
-  pub sat: Sat,
+  pub sat: Option<Sat>,
   pub number: i64,
   pub height: u64,
   pub timestamp: u32,
@@ -139,7 +139,7 @@ impl Inscriptions {
         let address = options.chain().address_from_script(&output.script_pubkey)?;
         if index_has_sats {
           print_json(OutputWithSatWithAddress {
-            sat: entry.sat.unwrap(),
+            sat: entry.sat,
             inscription,
             location,
             number: entry.number,
@@ -193,7 +193,7 @@ impl Inscriptions {
       let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
       if index_has_sats {
         output_with_sat.push(OutputWithSat {
-          sat: entry.sat.unwrap(),
+          sat: entry.sat,
           inscription,
           location,
           number: entry.number,
