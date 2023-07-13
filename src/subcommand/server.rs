@@ -127,12 +127,16 @@ impl Server {
   pub(crate) fn run(self, options: Options, index: Arc<Index>, handle: Handle) -> Result {
     Runtime::new()?.block_on(async {
       let clone = index.clone();
-      thread::spawn(move || loop {
+      let update_thread = thread::spawn(move || loop {
+        if SHUTTING_DOWN.load(atomic::Ordering::Relaxed) {
+          break;
+        }
         if let Err(error) = clone.update() {
           log::warn!("{error}");
         }
         thread::sleep(Duration::from_millis(5000));
       });
+      UPDATE_THREAD.lock().unwrap().replace(update_thread);
 
       let config = options.load_config()?;
       let acme_domains = self.acme_domains()?;
@@ -796,12 +800,18 @@ impl Server {
       header::CONTENT_SECURITY_POLICY,
       HeaderValue::from_static("default-src *:*/content/ *:*/blockheight *:*/blockhash *:*/blockhash/ *:*/blocktime 'unsafe-eval' 'unsafe-inline' data: blob:"),
     );
+
+    let body = inscription.into_body();
+    let cache_control = match body {
+      Some(_) => "max-age=31536000, immutable",
+      None => "max-age=600",
+    };
     headers.insert(
       header::CACHE_CONTROL,
-      HeaderValue::from_static("max-age=31536000, immutable"),
+      HeaderValue::from_str(cache_control).unwrap(),
     );
 
-    Some((headers, inscription.into_body()?))
+    Some((headers, body?))
   }
 
   async fn preview(
