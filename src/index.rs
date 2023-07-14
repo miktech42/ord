@@ -355,8 +355,7 @@ impl Index {
         blocks_indexed: wtx
           .open_table(HEIGHT_TO_BLOCK_HASH)?
           .range(0..)?
-          .rev()
-          .next()
+          .next_back()
           .and_then(|result| result.ok())
           .map(|(height, _hash)| height.value() + 1)
           .unwrap_or(0),
@@ -845,8 +844,7 @@ impl Index {
         let current = tx
           .open_table(HEIGHT_TO_BLOCK_HASH)?
           .range(0..)?
-          .rev()
-          .next()
+          .next_back()
           .and_then(|result| result.ok())
           .map(|(height, _hash)| height)
           .map(|x| x.value())
@@ -986,7 +984,7 @@ impl Index {
     let inscription_number_to_inscription_id =
       rtx.open_table(INSCRIPTION_NUMBER_TO_INSCRIPTION_ID)?;
 
-    let latest = match inscription_number_to_inscription_id.iter()?.rev().next() {
+    let latest = match inscription_number_to_inscription_id.iter()?.next_back() {
       Some(Ok((number, _id))) => number.value(),
       Some(Err(_)) => return Ok(Default::default()),
       None => return Ok(Default::default()),

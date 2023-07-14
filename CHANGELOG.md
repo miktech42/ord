@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.0-gm10](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm10) - 2023-07-14
+----------------------------------------------------------------------------------
+
+### Changed
+- Merge ordinals/master to get clippy fixes.
+
 [0.8.0-gm9](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm9) - 2023-07-14
 --------------------------------------------------------------------------------
 

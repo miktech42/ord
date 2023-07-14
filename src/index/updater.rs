@@ -50,8 +50,7 @@ impl Updater {
     let height = wtx
       .open_table(HEIGHT_TO_BLOCK_HASH)?
       .range(0..)?
-      .rev()
-      .next()
+      .next_back()
       .and_then(|result| result.ok())
       .map(|(height, _hash)| height.value() + 1)
       .unwrap_or(0);
@@ -144,8 +143,7 @@ impl Updater {
         let height = wtx
           .open_table(HEIGHT_TO_BLOCK_HASH)?
           .range(0..)?
-          .rev()
-          .next()
+          .next_back()
           .and_then(|result| result.ok())
           .map(|(height, _hash)| height.value() + 1)
           .unwrap_or(0);
