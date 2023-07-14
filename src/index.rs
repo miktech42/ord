@@ -893,23 +893,26 @@ impl Index {
       }
     }
 
-    Ok(result.into_iter()
-       .filter_map(|id| {
-         let entry = self.get_inscription_entry(id).unwrap().unwrap();
-         if max_sat.is_some() && entry.sat.unwrap() > max_sat.unwrap() {
-           Some(None)
-         } else if (!uncommon || entry.sat.unwrap().rarity() != Rarity::Common)
-           && (max_number.is_none() || entry.number <= max_number.unwrap())
-           && (max_height.is_none() || entry.height <= max_height.unwrap())
-         {
-           Some(Some(id))
-         } else {
-           None
-         }
-       })
-       .map_while(|x| x)
-       .take(n.unwrap_or(usize::MAX))
-       .collect())
+    Ok(
+      result
+        .into_iter()
+        .filter_map(|id| {
+          let entry = self.get_inscription_entry(id).unwrap().unwrap();
+          if max_sat.is_some() && entry.sat.unwrap() > max_sat.unwrap() {
+            Some(None)
+          } else if (!uncommon || entry.sat.unwrap().rarity() != Rarity::Common)
+            && (max_number.is_none() || entry.number <= max_number.unwrap())
+            && (max_height.is_none() || entry.height <= max_height.unwrap())
+          {
+            Some(Some(id))
+          } else {
+            None
+          }
+        })
+        .map_while(|x| x)
+        .take(n.unwrap_or(usize::MAX))
+        .collect(),
+    )
   }
 
   pub(crate) fn get_inscriptions_by_inscription_number(

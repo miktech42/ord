@@ -22,16 +22,21 @@ impl Decode {
       bail!("<VIN> too high - there are only {} input(s)", inputs.len());
     }
     let input = &inputs[vin];
-    for inscription in Inscription::from_witness(&input.witness).unwrap() {
-      fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open("file.dat")?
-        .write_all(inscription.body().unwrap())?;
+    match Inscription::from_witness(&input.witness) {
+      Err(_) => println!("no inscription in input {vin} of {}", self.txid),
+      Ok(inscriptions) =>
+        for (i, inscription) in inscriptions.iter().enumerate() {
+          let file = if i == 0 { String::from("file.dat") } else { format!("file{i}.dat")};
+          fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&file)?
+            .write_all(inscription.body().unwrap())?;
 
-      println!("content-type: {}", inscription.content_type().unwrap());
-      println!("body written to file.dat");
+          println!("content-type: {}", inscription.content_type().unwrap());
+          println!("body written to {file}");
+        }
     }
     Ok(())
   }

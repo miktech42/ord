@@ -109,7 +109,9 @@ impl Inscriptions {
         self.id.unwrap()
       };
 
-      let entry = index.get_inscription_entry(inscription)?.ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
+      let entry = index
+        .get_inscription_entry(inscription)?
+        .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
       let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
       let content_type = index
         .get_inscription_by_id(inscription)?
@@ -118,7 +120,9 @@ impl Inscriptions {
         .unwrap()
         .to_string();
 
-      if format!("{}", location.outpoint.txid) == "0000000000000000000000000000000000000000000000000000000000000000" {
+      if format!("{}", location.outpoint.txid)
+        == "0000000000000000000000000000000000000000000000000000000000000000"
+      {
         print_json(OutputUnbound {
           inscription,
           location,

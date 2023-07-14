@@ -73,7 +73,7 @@ fn export_inscription_number_to_id_tsv() {
 
   inscribe(&rpc_server);
   inscribe(&rpc_server);
-  let Inscribe { inscription, .. } = inscribe(&rpc_server);
+  let Inscribe { inscriptions, .. } = inscribe(&rpc_server);
 
   rpc_server.mine_blocks(1);
 
@@ -96,6 +96,6 @@ fn export_inscription_number_to_id_tsv() {
 
   assert_eq!(
     entries.get(&2).unwrap(),
-    &ord::Object::from_str(&inscription).unwrap()
+    &ord::Object::from_str(&inscriptions[0]).unwrap()
   )
 }

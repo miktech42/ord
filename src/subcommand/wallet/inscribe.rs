@@ -25,15 +25,18 @@ use {
 
 #[derive(Deserialize)]
 pub struct DecodeRawTransactionOutput {
-  pub weight: u64,
+  pub weight: usize,
 }
 
 #[derive(Serialize)]
 struct OutputDump {
   satpoint: SatPoint,
   inscriptions: Vec<InscriptionId>,
+  filenames: Vec<PathBuf>,
   commit: String,
+  commit_weight: usize,
   reveals: Vec<String>,
+  reveal_weights: Vec<usize>,
   recovery_descriptors: Vec<String>,
   fees: u64,
 }
@@ -71,13 +74,13 @@ pub(crate) struct Inscribe {
   pub(crate) no_backup: bool,
   #[clap(long, help = "Do not broadcast any transactions.")]
   pub(crate) no_broadcast: bool,
-/*
-  #[clap(
-    long,
-    help = "Wait for the commit tx to confirm before sending reveal txs."
-  )]
-  pub(crate) wait_after_commit: bool,
-*/
+  /*
+    #[clap(
+      long,
+      help = "Wait for the commit tx to confirm before sending reveal txs."
+    )]
+    pub(crate) wait_after_commit: bool,
+  */
   #[clap(
     long,
     help = "Do not check that transactions are equal to or below the MAX_STANDARD_TX_WEIGHT of 400,000 weight units. Transactions over this limit are currently nonstandard and will not be relayed by bitcoind in its default configuration. Do not use this flag unless you understand the implications."
@@ -111,7 +114,10 @@ pub(crate) struct Inscribe {
     help = "Location of a CSV file to use for a combination of DESTINATION and FILE NAMES.  Should be structured `destination,file`."
   )]
   pub(crate) csv: Option<PathBuf>,
-  #[clap(long, help = "Create a 'cursed' inscription (with an unknown even 0x42 tag)")]
+  #[clap(
+    long,
+    help = "Create a 'cursed' inscription (with an unknown even 0x42 tag)"
+  )]
   pub(crate) cursed: bool,
   #[clap(long, help = "Allow inscription on sats that are already inscribed.")]
   pub(crate) allow_reinscribe: bool,
@@ -122,6 +128,7 @@ pub(crate) struct Inscribe {
 impl Inscribe {
   pub(crate) fn run(self, options: Options) -> Result {
     let mut inscription = Vec::new();
+    let mut filenames = Vec::new();
     let mut destinations = Vec::new();
 
     let mut client = options.bitcoin_rpc_client_for_wallet_command(false)?;
@@ -135,10 +142,10 @@ impl Inscribe {
 
       let file = File::open(&csv)?;
       let reader = BufReader::new(file);
-      let mut line_number=1;
+      let mut line_number = 1;
       for line in reader.lines() {
         let line = line?;
-        let mut split = line.trim_start_matches("\u{feff}").split(',');
+        let mut split = line.trim_start_matches('\u{feff}').split(',');
         let destination = split.next().ok_or_else(|| {
           anyhow!(
             "Destination CSV file '{}' is not formatted correctly",
@@ -153,12 +160,17 @@ impl Inscribe {
         })?;
 
         let file = PathBuf::from(file);
+        filenames.push(file.clone());
 
         let i = Inscription::from_file(options.chain(), &file);
         if i.is_ok() {
           inscription.push(i?);
         } else {
-          i.context(format!("Error with file '{}' in CSV file {} line {line_number}", file.display(), csv.display()))?;
+          i.context(format!(
+            "Error with file '{}' in CSV file {} line {line_number}",
+            file.display(),
+            csv.display()
+          ))?;
         }
 
         let address = Address::from_str(destination)?;
@@ -170,17 +182,23 @@ impl Inscribe {
       }
     } else {
       for file in self.files.iter() {
+        tprintln!("[open files]");
         inscription.push(Inscription::from_file(options.chain(), file)?);
+        filenames.push(PathBuf::from(file));
       }
       if self.destination.is_empty() {
-        for _ in self.files {
+        tprintln!("[get destination addresses]");
+        for (i, _) in self.files.iter().enumerate() {
           destinations.push(get_change_address(&client)?);
+          if (i + 1) % 100 == 0 {
+            tprintln!("  [{}]", i + 1);
+          }
         }
       } else {
         for destination in &self.destination {
           options
             .chain()
-            .check_address_is_valid_for_network(&destination)?;
+            .check_address_is_valid_for_network(destination)?;
         }
         destinations = self.destination;
       }
@@ -252,18 +270,16 @@ impl Inscribe {
       .sign_raw_transaction_with_wallet(&unsigned_commit_tx, None, None)?
       .hex;
 
-    if !self.no_limit {
-      let commit_weight = client
-        .call::<DecodeRawTransactionOutput>(
-          "decoderawtransaction",
-          &[signed_raw_commit_tx.raw_hex().into()],
-        )?
-        .weight;
-      if commit_weight > MAX_STANDARD_TX_WEIGHT.into() {
-        bail!(
-          "commit transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {commit_weight}"
-        );
-      }
+    let commit_weight = client
+      .call::<DecodeRawTransactionOutput>(
+        "decoderawtransaction",
+        &[signed_raw_commit_tx.raw_hex().into()],
+      )?
+      .weight;
+    if !self.no_limit && commit_weight > MAX_STANDARD_TX_WEIGHT as usize {
+      bail!(
+        "commit transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {commit_weight}"
+      );
     }
 
     tprintln!("[insert values]");
@@ -305,9 +321,11 @@ impl Inscribe {
         let commit = signed_raw_commit_tx.raw_hex();
 
         let mut reveals = Vec::new();
+        let mut reveal_weights = Vec::new();
         let mut inscriptions = Vec::new();
         for reveal_tx in reveal_txs.iter() {
           reveals.push(reveal_tx.raw_hex());
+          reveal_weights.push(reveal_tx.weight());
           inscriptions.push(reveal_tx.txid().into());
         }
 
@@ -323,8 +341,11 @@ impl Inscribe {
         print_json(OutputDump {
           satpoint,
           inscriptions,
+          filenames,
           commit,
+          commit_weight,
           reveals,
+          reveal_weights,
           recovery_descriptors,
           fees,
         })?;
@@ -340,49 +361,49 @@ impl Inscribe {
         let commit = client
           .send_raw_transaction(&signed_raw_commit_tx)
           .context("Failed to send commit transaction")?;
-/*
-        if self.wait_after_commit {
-          let mut failed = false;
-          drop(index);
-          eprint!("[waiting for commit transaction {} to confirm] ", commit);
-          io::stdout().flush()?;
-          drop(client);
-          loop {
-            thread::sleep(time::Duration::from_secs(60));
-            match options.bitcoin_rpc_client_for_wallet_command(false) {
-              Ok(client) => {
-                if failed {
-                  eprintln!("[reconnected]");
-                  failed = false;
-                }
+        /*
+                if self.wait_after_commit {
+                  let mut failed = false;
+                  drop(index);
+                  eprint!("[waiting for commit transaction {} to confirm] ", commit);
+                  io::stdout().flush()?;
+                  drop(client);
+                  loop {
+                    thread::sleep(time::Duration::from_secs(60));
+                    match options.bitcoin_rpc_client_for_wallet_command(false) {
+                      Ok(client) => {
+                        if failed {
+                          eprintln!("[reconnected]");
+                          failed = false;
+                        }
 
-                match client.get_transaction(&commit, Some(false)) {
-                  Ok(tx) => {
-                    if tx.info.confirmations > 0 {
-                      eprintln!();
-                      eprintln!("[confirmed]");
-                      break;
+                        match client.get_transaction(&commit, Some(false)) {
+                          Ok(tx) => {
+                            if tx.info.confirmations > 0 {
+                              eprintln!();
+                              eprintln!("[confirmed]");
+                              break;
+                            }
+                            eprint!(".");
+                          }
+                          Err(error) => {
+                            eprintln!();
+                            eprintln!("[error: {:?}]", error);
+                            eprintln!("[trying to reconnect to bitcoin client]");
+                            failed = true;
+                          }
+                        }
+                      }
+                      Err(error) => {
+                        eprintln!();
+                        eprintln!("[failed to connect to bitcoin client: {:?}]", error);
+                        failed = true;
+                        thread::sleep(time::Duration::from_secs(60));
+                      }
                     }
-                    eprint!(".");
-                  }
-                  Err(error) => {
-                    eprintln!();
-                    eprintln!("[error: {:?}]", error);
-                    eprintln!("[trying to reconnect to bitcoin client]");
-                    failed = true;
                   }
                 }
-              }
-              Err(error) => {
-                eprintln!();
-                eprintln!("[failed to connect to bitcoin client: {:?}]", error);
-                failed = true;
-                thread::sleep(time::Duration::from_secs(60));
-              }
-            }
-          }
-        }
-*/
+        */
 
         // make sure we can write to a file in the event that any of the reveals fail
         let failed_reveals_filename = format!("failed-reveals-for-commit-{commit}.txt");
@@ -404,7 +425,7 @@ impl Inscribe {
             Ok(reveal) => {
               // println!("ok {i}");
               reveals.push(reveal);
-            },
+            }
             Err(_error) => {
               // eprintln!("Failed to send reveal transaction {i}: {:?}]", _error);
               failed_reveals.push(reveal_tx.raw_hex());
@@ -425,10 +446,14 @@ impl Inscribe {
           fs::remove_file(failed_reveals_filename)?;
         } else {
           for tx in &failed_reveals {
-            write!(file, "{tx}\n")?;
+            writeln!(file, "{tx}")?;
           }
 
-          println!("\n{} reveal{} failed - see {failed_reveals_filename}", failed_reveals.len(), if failed_reveals.len() == 1 {""} else {"s"});
+          println!(
+            "\n{} reveal{} failed - see {failed_reveals_filename}",
+            failed_reveals.len(),
+            if failed_reveals.len() == 1 { "" } else { "s" }
+          );
         }
       }
     }
@@ -599,7 +624,6 @@ impl Inscribe {
       .expect("should find sat commit/inscription output");
 
     tprintln!("[remake reveals]");
-    let mut n = 0;
     for (
       i,
       ((((control_block, reveal_script), key_pair), taproot_spend_info), commit_tx_address),
@@ -682,9 +706,8 @@ impl Inscribe {
           "reveal transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {reveal_weight}"
         );
       }
-      n += 1;
-      if n % 100 == 0 {
-        tprintln!("  [{n}]");
+      if (i + 1) % 100 == 0 {
+        tprintln!("  [{}]", i + 1);
       }
     }
 

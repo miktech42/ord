@@ -92,7 +92,11 @@ impl Inscription {
     })
   }
 
-  fn append_reveal_script_to_builder(&self, mut builder: script::Builder, cursed: bool) -> script::Builder {
+  fn append_reveal_script_to_builder(
+    &self,
+    mut builder: script::Builder,
+    cursed: bool,
+  ) -> script::Builder {
     builder = builder
       .push_opcode(opcodes::OP_FALSE)
       .push_opcode(opcodes::all::OP_IF)
@@ -122,7 +126,9 @@ impl Inscription {
   }
 
   pub(crate) fn append_reveal_script(&self, builder: script::Builder, cursed: bool) -> Script {
-    self.append_reveal_script_to_builder(builder, cursed).into_script()
+    self
+      .append_reveal_script_to_builder(builder, cursed)
+      .into_script()
   }
 
   pub(crate) fn media(&self) -> Media {
@@ -747,7 +753,8 @@ mod tests {
   fn chunked_data_is_parsable() {
     let mut witness = Witness::new();
 
-    witness.push(&inscription("foo", [1; 1040]).append_reveal_script(script::Builder::new(), false));
+    witness
+      .push(&inscription("foo", [1; 1040]).append_reveal_script(script::Builder::new(), false));
 
     witness.push([]);
 

@@ -92,7 +92,7 @@ impl Send {
         if self.coin_control || !self.utxo.is_empty() {
           bail!("--coin_control and --utxo don't work when sending cardinals");
         }
-          
+
         self.send_amount(amount, &client, inscriptions, unspent_outputs)?;
         return Ok(());
       }
