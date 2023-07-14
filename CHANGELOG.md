@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.0-gm5](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm5) - 2023-07-13
+--------------------------------------------------------------------------------
+
+### Changed
+- Join update thread after main run completes - another index corruption fix (#2270)
+
 [0.8.0-gm4](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm4) - 2023-07-13
 --------------------------------------------------------------------------------
 
