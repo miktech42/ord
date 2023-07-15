@@ -1,6 +1,21 @@
 Changelog
 =========
 
+[0.8.0-gm12](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm12) - 2023-07-15
+----------------------------------------------------------------------------------
+
+### Added
+- Write to `error.txt` in the current directory when there's a reorg detected.
+
+### Changed
+- Wait 1 second between each check for new blocks in `ord server`.
+
+[0.8.0-gm11](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm11) - 2023-07-14
+----------------------------------------------------------------------------------
+
+### Added
+- Added a server page listing the sent inscriptions per block.
+
 [0.8.0-gm10](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm10) - 2023-07-14
 ----------------------------------------------------------------------------------
 

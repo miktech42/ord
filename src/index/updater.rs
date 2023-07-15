@@ -403,10 +403,17 @@ impl Updater {
 
       if prev_hash.value() != block.header.prev_blockhash.as_ref() {
         index.reorged.store(true, atomic::Ordering::Relaxed);
+        fs::OpenOptions::new()
+          .create(true)
+          .write(true)
+          .truncate(true)
+          .open(String::from("error.txt"))?
+          .write_all(format!("reorg detected at or before {prev_height}\n").as_bytes())?;
         return Err(anyhow!("reorg detected at or before {prev_height}"));
       }
     }
 
+    let mut height_to_inscription_id = wtx.open_multimap_table(HEIGHT_TO_INSCRIPTION_ID)?;
     let mut inscription_id_to_inscription_entry =
       wtx.open_table(INSCRIPTION_ID_TO_INSCRIPTION_ENTRY)?;
     let mut inscription_id_to_satpoint = wtx.open_table(INSCRIPTION_ID_TO_SATPOINT)?;
@@ -429,6 +436,7 @@ impl Updater {
 
     let mut inscription_updater = InscriptionUpdater::new(
       self.height,
+      &mut height_to_inscription_id,
       &mut inscription_id_to_satpoint,
       value_receiver,
       &mut inscription_id_to_inscription_entry,

@@ -43,6 +43,7 @@ macro_rules! define_multimap_table {
 }
 
 define_table! { HEIGHT_TO_BLOCK_HASH, u64, &BlockHashValue }
+define_multimap_table! { HEIGHT_TO_INSCRIPTION_ID, u64, &InscriptionIdValue }
 define_table! { INSCRIPTION_ID_TO_INSCRIPTION_ENTRY, &InscriptionIdValue, InscriptionEntryValue }
 define_table! { INSCRIPTION_ID_TO_SATPOINT, &InscriptionIdValue, &SatPointValue }
 define_table! { INSCRIPTION_NUMBER_TO_INSCRIPTION_ID, i64, &InscriptionIdValue }
@@ -221,6 +222,7 @@ impl Index {
         };
 
         tx.open_table(HEIGHT_TO_BLOCK_HASH)?;
+        tx.open_multimap_table(HEIGHT_TO_INSCRIPTION_ID)?;
         tx.open_table(INSCRIPTION_ID_TO_INSCRIPTION_ENTRY)?;
         tx.open_table(INSCRIPTION_ID_TO_SATPOINT)?;
         tx.open_table(INSCRIPTION_NUMBER_TO_INSCRIPTION_ID)?;
@@ -541,6 +543,23 @@ impl Index {
 
   pub(crate) fn get_block_by_hash(&self, hash: BlockHash) -> Result<Option<Block>> {
     self.client.get_block(&hash).into_option()
+  }
+
+  pub(crate) fn get_inscription_ids_by_height(&self, height: u64) -> Result<Vec<InscriptionId>> {
+    let mut ret = Vec::new();
+    for range in self
+      .database
+      .begin_read()?
+      .open_multimap_table(HEIGHT_TO_INSCRIPTION_ID)?
+      .range::<&u64>(&height..&(height + 1))?
+    {
+      let (_, ids) = range?;
+      for id in ids {
+        ret.push(Entry::load(*id?.value()));
+      }
+    }
+
+    Ok(ret)
   }
 
   pub(crate) fn get_inscription_id_by_sat(&self, sat: Sat) -> Result<Option<InscriptionId>> {

@@ -22,6 +22,7 @@ enum Origin {
 pub(super) struct InscriptionUpdater<'a, 'db, 'tx> {
   flotsam: Vec<Flotsam>,
   height: u64,
+  height_to_inscription_id: &'a mut MultimapTable<'db, 'tx, u64, &'static InscriptionIdValue>,
   id_to_satpoint: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, &'static SatPointValue>,
   value_receiver: &'a mut Receiver<u64>,
   id_to_entry: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, InscriptionEntryValue>,
@@ -43,6 +44,7 @@ pub(super) struct InscriptionUpdater<'a, 'db, 'tx> {
 impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
   pub(super) fn new(
     height: u64,
+    height_to_inscription_id: &'a mut MultimapTable<'db, 'tx, u64, &'static InscriptionIdValue>,
     id_to_satpoint: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, &'static SatPointValue>,
     value_receiver: &'a mut Receiver<u64>,
     id_to_entry: &'a mut Table<'db, 'tx, &'static InscriptionIdValue, InscriptionEntryValue>,
@@ -78,6 +80,7 @@ impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
     Ok(Self {
       flotsam: Vec::new(),
       height,
+      height_to_inscription_id,
       id_to_satpoint,
       value_receiver,
       id_to_entry,
@@ -374,6 +377,15 @@ impl<'a, 'db, 'tx> InscriptionUpdater<'a, 'db, 'tx> {
     let inscription_id = flotsam.inscription_id.store();
     let unbound = match flotsam.origin {
       Origin::Old { old_satpoint } => {
+        tprintln!(
+          "{} : {} -> {}",
+          flotsam.inscription_id,
+          old_satpoint,
+          new_satpoint
+        );
+        self
+          .height_to_inscription_id
+          .insert(&self.height, &inscription_id)?;
         self.satpoint_to_id.remove_all(&old_satpoint.store())?;
 
         false

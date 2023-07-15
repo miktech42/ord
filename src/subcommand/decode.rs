@@ -24,9 +24,13 @@ impl Decode {
     let input = &inputs[vin];
     match Inscription::from_witness(&input.witness) {
       Err(_) => println!("no inscription in input {vin} of {}", self.txid),
-      Ok(inscriptions) =>
+      Ok(inscriptions) => {
         for (i, inscription) in inscriptions.iter().enumerate() {
-          let file = if i == 0 { String::from("file.dat") } else { format!("file{i}.dat")};
+          let file = if i == 0 {
+            String::from("file.dat")
+          } else {
+            format!("file{i}.dat")
+          };
           fs::OpenOptions::new()
             .create(true)
             .write(true)
@@ -37,6 +41,7 @@ impl Decode {
           println!("content-type: {}", inscription.content_type().unwrap());
           println!("body written to {file}");
         }
+      }
     }
     Ok(())
   }
