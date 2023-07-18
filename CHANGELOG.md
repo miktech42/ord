@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.0-gm14](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm14) - 2023-07-17
+----------------------------------------------------------------------------------
+
+### Added
+- Add `/inscriptions_json/:start/:end` server endpoint.
+
 [0.8.0-gm12](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm12) - 2023-07-15
 ----------------------------------------------------------------------------------
 
