@@ -9,7 +9,7 @@ use {
   super::*,
   crate::wallet::Wallet,
   bitcoin::BlockHeader,
-  bitcoincore_rpc::{json::GetBlockHeaderResult, Client},
+  bitcoincore_rpc::{json::BlockStatsFields::Time, json::GetBlockHeaderResult, Client},
   chrono::SubsecRound,
   indicatif::{ProgressBar, ProgressStyle},
   log::log_enabled,
@@ -855,9 +855,12 @@ impl Index {
   pub(crate) fn block_time(&self, height: Height) -> Result<Blocktime> {
     let height = height.n();
 
-    match self.get_block_by_height(height)? {
-      Some(block) => Ok(Blocktime::confirmed(block.header.time)),
-      None => {
+    match self.client.get_block_stats_fields(height, &[Time]) {
+      Ok(stats) => {
+        let time = stats.time.unwrap();
+        Ok(Blocktime::confirmed(time as u32))
+      }
+      Err(_) => {
         let tx = self.database.begin_read()?;
 
         let current = tx

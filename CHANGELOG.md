@@ -1,6 +1,32 @@
 Changelog
 =========
 
+[0.8.0-gm18](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm18) - 2023-07-21
+----------------------------------------------------------------------------------
+
+### Changed
+- Avoid fetching the same tx twice.
+
+[0.8.0-gm17](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm17) - 2023-07-21
+----------------------------------------------------------------------------------
+
+### Changed
+- Increase the limit on /inscriptions_json from 100 to 1000.
+- Remove `timestamp` from the `sat` object. It's too slow to look up.
+
+[0.8.0-gm16](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm16) - 2023-07-21
+----------------------------------------------------------------------------------
+
+### Changed
+- Use `getblockstats` instead of `getblockhash | getblock` to look up a block's time.
+
+[0.8.0-gm15](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm15) - 2023-07-20
+----------------------------------------------------------------------------------
+
+### Changed
+- Increase the limit on /inscriptions_json from 100 to 1000.
+- Attempt to stop blocking the server when fetching a lot of inscriptions.
+
 [0.8.0-gm14](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm14) - 2023-07-17
 ----------------------------------------------------------------------------------
 

@@ -28,6 +28,7 @@ use {
     AcmeConfig,
   },
   std::{cmp::Ordering, str},
+  tokio::time::sleep,
   tokio_stream::StreamExt,
   tower_http::{
     compression::CompressionLayer,
@@ -97,7 +98,7 @@ struct SatJson {
   block: u64,
   offset: u64,
   rarity: Rarity,
-  timestamp: i64,
+  // timestamp: i64,
 }
 
 #[derive(RustEmbed)]
@@ -1033,7 +1034,7 @@ impl Server {
     Extension(index): Extension<Arc<Index>>,
     Path(path): Path<(i64, i64)>,
   ) -> ServerResult<String> {
-    const MAX_JSON_INSCRIPTIONS: i64 = 100;
+    const MAX_JSON_INSCRIPTIONS: i64 = 10000;
 
     let start = path.0;
     let end = path.1;
@@ -1050,6 +1051,7 @@ impl Server {
         let mut ret = Vec::new();
 
         for i in start..end {
+          sleep(Duration::from_millis(0)).await;
           match index.get_inscription_id_by_inscription_number(i) {
             Err(_) => return Err(ServerError::BadRequest(format!("no inscription {i}"))),
             Ok(inscription_id) => match inscription_id {
@@ -1058,9 +1060,11 @@ impl Server {
                   .get_inscription_entry(inscription_id)?
                   .ok_or_not_found(|| format!("inscription {inscription_id}"))?;
 
-                let inscription = index
-                  .get_inscription_by_id(inscription_id)?
-                  .ok_or_not_found(|| format!("inscription {inscription_id}"))?;
+                let tx = index.get_transaction(inscription_id.txid)?.unwrap();
+                let inscription = Inscription::from_transaction(&tx)
+                  .get(inscription_id.index as usize)
+                  .map(|transaction_inscription| transaction_inscription.inscription.clone())
+                  .unwrap();
 
                 let satpoint = index
                   .get_inscription_satpoint_by_id(inscription_id)?
@@ -1070,17 +1074,21 @@ impl Server {
                   None
                 } else {
                   Some(
-                    index
-                      .get_transaction(satpoint.outpoint.txid)?
-                      .ok_or_not_found(|| {
-                        format!("inscription {inscription_id} current transaction")
-                      })?
-                      .output
-                      .into_iter()
-                      .nth(satpoint.outpoint.vout.try_into().unwrap())
-                      .ok_or_not_found(|| {
-                        format!("inscription {inscription_id} current transaction output")
-                      })?,
+                    if satpoint.outpoint.txid == inscription_id.txid {
+                      tx
+                    } else {
+                      index
+                        .get_transaction(satpoint.outpoint.txid)?
+                        .ok_or_not_found(|| {
+                          format!("inscription {inscription_id} current transaction")
+                        })?
+                    }
+                    .output
+                    .into_iter()
+                    .nth(satpoint.outpoint.vout.try_into().unwrap())
+                    .ok_or_not_found(|| {
+                      format!("inscription {inscription_id} current transaction output")
+                    })?,
                   )
                 };
 
@@ -1104,7 +1112,7 @@ impl Server {
                     block: s.height().0,
                     offset: s.third(),
                     rarity: s.rarity(),
-                    timestamp: index.block_time(s.height())?.unix_timestamp(),
+                    // timestamp: index.block_time(s.height())?.unix_timestamp(),
                   })
                 } else {
                   None
