@@ -23,7 +23,7 @@ pub(crate) struct Inscriptions {
   order_by_sat: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct OutputWithSatWithAddress {
   pub sat: Option<Sat>,
   pub number: i64,
@@ -36,7 +36,7 @@ pub struct OutputWithSatWithAddress {
   pub content_type: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct OutputWithoutSatWithAddress {
   pub number: i64,
   pub height: u64,
@@ -48,7 +48,7 @@ pub struct OutputWithoutSatWithAddress {
   pub content_type: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct OutputWithSat {
   pub sat: Option<Sat>,
   pub number: i64,
@@ -58,7 +58,7 @@ pub struct OutputWithSat {
   pub location: SatPoint,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct OutputWithoutSat {
   pub number: i64,
   pub height: u64,
@@ -67,7 +67,7 @@ pub struct OutputWithoutSat {
   pub location: SatPoint,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct OutputUnbound {
   pub number: i64,
   pub height: u64,
@@ -170,7 +170,7 @@ impl Inscriptions {
     }
 
     let inscriptions = if self.order_by_sat {
-      index.get_inscriptions_by_sat(
+      index.get_inscriptions_by_sat( // missing
         self.limit,
         self.max_number,
         self.max_height,
@@ -178,7 +178,7 @@ impl Inscriptions {
         self.uncommon,
       )?
     } else {
-      index.get_inscriptions_by_inscription_number(
+      index.get_inscriptions_by_inscription_number( // missing
         self.limit,
         self.max_number,
         self.max_height,

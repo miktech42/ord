@@ -22,6 +22,7 @@ impl Find {
     index.update()?;
 
     match self.end {
+
       Some(end) => {
         if self.sat < end {
           match index.find_range(self.sat.0, end.0, &self.outpoint)? {
@@ -35,6 +36,7 @@ impl Find {
           Err(anyhow!("range is empty"))
         }
       }
+
       None => match index.find(self.sat.0, &self.outpoint)? {
         Some(satpoint) => {
           print_json(Output { satpoint })?;

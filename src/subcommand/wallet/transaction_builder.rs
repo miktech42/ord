@@ -35,8 +35,8 @@
 use {
   super::*,
   bitcoin::{
-    blockdata::{locktime::PackedLockTime, witness::Witness},
-    util::amount::Amount,
+    blockdata::{locktime::absolute::LockTime, witness::Witness},
+    Amount, ScriptBuf,
   },
   std::collections::{BTreeMap, BTreeSet},
 };
@@ -125,8 +125,8 @@ pub struct TransactionBuilder {
 type Result<T> = std::result::Result<T, Error>;
 
 impl TransactionBuilder {
-  const ADDITIONAL_INPUT_VBYTES: f64 = 58.0;
-  const ADDITIONAL_OUTPUT_VBYTES: f64 = 43.0;
+  const ADDITIONAL_INPUT_WEIGHT: Weight = Weight::from_wu((57.5 * 4.0) as u64);
+  const ADDITIONAL_OUTPUT_WEIGHT: Weight = Weight::from_wu((43.0 * 4.0) as u64);
   const SCHNORR_SIGNATURE_SIZE: usize = 64;
   pub(crate) const DEFAULT_MAX_POSTAGE: Amount = Amount::from_sat(2 * 10_000);
   pub(crate) const DEFAULT_TARGET_POSTAGE: Amount = Amount::from_sat(10_000);
@@ -469,7 +469,7 @@ impl TransactionBuilder {
     };
     if let Some(mut deficit) = total.checked_sub(have) {
       while deficit > Amount::ZERO {
-        let additional_fee = self.fee_rate.fee(Self::ADDITIONAL_INPUT_VBYTES);
+        let additional_fee = self.fee_rate.fee(Self::ADDITIONAL_INPUT_WEIGHT);
         let needed = deficit
           .checked_add(additional_fee)
           .ok_or(Error::ValueOverflow)?;
@@ -534,7 +534,7 @@ impl TransactionBuilder {
     }
 
     let value = total_output_amount - Amount::from_sat(sat_offset);
-    if let Some(excess) = value.checked_sub(self.fee_rate.fee(self.estimate_vbytes())) {
+    if let Some(excess) = value.checked_sub(self.fee_rate.fee(self.estimate_weight())) {
       let (max, target) = self
         .target
         .iter()
@@ -555,7 +555,7 @@ impl TransactionBuilder {
             .dust_value()
             + self
               .fee_rate
-              .fee(self.estimate_vbytes() + Self::ADDITIONAL_OUTPUT_VBYTES)
+              .fee(self.estimate_weight() + Self::ADDITIONAL_OUTPUT_WEIGHT)
       {
         tprintln!("stripped {} sats", (value - target).to_sat());
         self.outputs.last_mut().expect("no outputs found").1 -= value - target;
@@ -605,8 +605,8 @@ impl TransactionBuilder {
   /// We initialize wallets with taproot descriptors only, so we know that all
   /// inputs are taproot key path spends, which allows us to know that witnesses
   /// will all consist of single Schnorr signatures.
-  fn estimate_vbytes(&self) -> f64 {
-    Self::estimate_vbytes_with(
+  fn estimate_weight(&self) -> Weight {
+    Self::estimate_weight_with(
       self.inputs.len(),
       self
         .outputs
@@ -617,16 +617,16 @@ impl TransactionBuilder {
     )
   }
 
-  fn estimate_vbytes_with(inputs: usize, outputs: Vec<Address>) -> f64 {
+  fn estimate_weight_with(inputs: usize, outputs: Vec<Address>) -> Weight {
     let t = Transaction {
       version: 1,
-      lock_time: PackedLockTime::ZERO,
+      lock_time: LockTime::ZERO,
       input: (0..inputs)
         .map(|_| TxIn {
           previous_output: OutPoint::null(),
-          script_sig: Script::new(),
+          script_sig: ScriptBuf::new(),
           sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
-          witness: Witness::from_vec(vec![vec![0; TransactionBuilder::SCHNORR_SIGNATURE_SIZE]]),
+          witness: Witness::from_slice(&[&[0; TransactionBuilder::SCHNORR_SIGNATURE_SIZE]]),
         })
         .collect(),
       output: outputs
@@ -638,29 +638,29 @@ impl TransactionBuilder {
         .collect(),
     };
 
-    t.weight() as f64 / 4.0
+    t.weight()
   }
 
   fn estimate_fee(&self) -> Amount {
-    // println!("size {} weight {}", self.estimate_vbytes(),
-    self.fee_rate.fee(self.estimate_vbytes())
+    // println!("size {} weight {}", self.estimate_weight(),
+    self.fee_rate.fee(self.estimate_weight())
   }
 
   fn build(self) -> Result<Transaction> {
-    let recipient: Vec<Script> = self
+    let recipient: Vec<_> = self
       .recipient
       .iter()
       .map(|recipient| recipient.script_pubkey())
       .collect();
     let transaction = Transaction {
       version: 1,
-      lock_time: PackedLockTime::ZERO,
+      lock_time: LockTime::ZERO,
       input: self
         .inputs
         .iter()
         .map(|outpoint| TxIn {
           previous_output: *outpoint,
-          script_sig: Script::new(),
+          script_sig: ScriptBuf::new(),
           sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
           witness: Witness::new(),
         })
@@ -749,7 +749,7 @@ impl TransactionBuilder {
       offset += output.value;
     }
 
-    let slop = self.fee_rate.fee(Self::ADDITIONAL_OUTPUT_VBYTES);
+    let slop = self.fee_rate.fee(Self::ADDITIONAL_OUTPUT_WEIGHT);
     let mut n = self.padding_outputs;
     for (recipient, target) in self.recipient.iter().zip(self.target) {
       let output = &transaction.output[n];
@@ -807,9 +807,9 @@ impl TransactionBuilder {
 
     let mut modified_tx = transaction.clone();
     for input in &mut modified_tx.input {
-      input.witness = Witness::from_vec(vec![vec![0; 64]]);
+      input.witness = Witness::from_slice(&[&[0; 64]]);
     }
-    let expected_fee = self.fee_rate.fee(modified_tx.weight() as f64 / 4.0);
+    let expected_fee = self.fee_rate.fee(modified_tx.weight());
 
     assert_eq!(
       actual_fee, expected_fee,
@@ -985,7 +985,7 @@ mod tests {
       tx_builder.build(),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2)), tx_in(outpoint(3))],
         output: vec![
           tx_out(5_000, recipient()),
@@ -1035,7 +1035,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(4901, recipient())],
       })
@@ -1090,7 +1090,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2))],
         output: vec![tx_out(4_950, change(0)), tx_out(4_862, recipient())],
       })
@@ -1164,7 +1164,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2))],
         output: vec![
           tx_out(4_950, change(0)),
@@ -1270,8 +1270,9 @@ mod tests {
     .unwrap();
 
     builder.outputs[0].0 = "tb1qx4gf3ya0cxfcwydpq8vr2lhrysneuj5d7lqatw"
-      .parse()
-      .unwrap();
+      .parse::<Address<NetworkUnchecked>>()
+      .unwrap()
+      .assume_checked();
 
     builder.build().unwrap();
   }
@@ -1322,7 +1323,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![
           tx_out(
@@ -1379,7 +1380,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(3_333, change(0)), tx_out(6_537, recipient())],
       })
@@ -1408,7 +1409,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(2)), tx_in(outpoint(1))],
         output: vec![tx_out(10_001, change(0)), tx_out(9_811, recipient())],
       })
@@ -1676,7 +1677,7 @@ mod tests {
       transaction,
       Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(10_000 - fee.to_sat(), recipient())],
       }
@@ -1701,7 +1702,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(1000, recipient()), tx_out(3870, change(1))],
       })
@@ -1729,7 +1730,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1)), tx_in(outpoint(2))],
         output: vec![tx_out(1500, recipient()), tx_out(312, change(1))],
       })
@@ -1807,23 +1808,24 @@ mod tests {
 
   #[test]
   fn additional_input_size_is_correct() {
-    let before = TransactionBuilder::estimate_vbytes_with(0, Vec::new());
-    let after = TransactionBuilder::estimate_vbytes_with(1, Vec::new());
+    let before = TransactionBuilder::estimate_weight_with(0, Vec::new());
+    let after = TransactionBuilder::estimate_weight_with(1, Vec::new());
     assert_eq!(after - before, TransactionBuilder::ADDITIONAL_INPUT_VBYTES);
   }
 
   #[test]
   fn additional_output_size_is_correct() {
-    let before = TransactionBuilder::estimate_vbytes_with(0, Vec::new());
-    let after = TransactionBuilder::estimate_vbytes_with(
+    let before = TransactionBuilder::estimate_weight_with(0, Vec::new());
+    let after = TransactionBuilder::estimate_weight_with(
       0,
       vec![
         "bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k"
-          .parse()
-          .unwrap(),
+          .parse::<Address<NetworkUnchecked>>()
+          .unwrap()
+          .assume_checked(),
       ],
     );
-    assert_eq!(after - before, TransactionBuilder::ADDITIONAL_OUTPUT_VBYTES);
+    assert_eq!(after - before, TransactionBuilder::ADDITIONAL_OUTPUT_WEIGHT);
   }
 
   #[test]
@@ -1844,7 +1846,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(901, recipient())],
       }),
@@ -1870,7 +1872,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(20_000, recipient())],
       }),
@@ -1895,7 +1897,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(1005, recipient())],
       }),
@@ -1980,7 +1982,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(1802, recipient())],
       }),
@@ -2006,7 +2008,7 @@ mod tests {
       ),
       Ok(Transaction {
         version: 1,
-        lock_time: PackedLockTime::ZERO,
+        lock_time: LockTime::ZERO,
         input: vec![tx_in(outpoint(1))],
         output: vec![tx_out(20250, recipient())],
       }),

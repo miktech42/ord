@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.0-gm19](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm19) - 2023-07-21
+----------------------------------------------------------------------------------
+
+### Changed
+- Merged master branch from upstream.
+
 [0.8.0-gm18](https://github.com/gmart7t2/ord/releases/tag/0.8.0-gm18) - 2023-07-21
 ----------------------------------------------------------------------------------
 

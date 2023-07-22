@@ -2,7 +2,7 @@ use {super::*, crate::wallet::Wallet};
 
 #[derive(Debug, Parser)]
 pub(crate) struct Send {
-  address: Address,
+  address: Address<NetworkUnchecked>,
   outgoing: Outgoing,
   #[clap(
     long,
@@ -17,9 +17,9 @@ pub(crate) struct Send {
   #[clap(long, help = "Use fee rate of <FEE_RATE> sats/vB")]
   fee_rate: FeeRate,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
-  pub(crate) alignment: Option<Address>,
+  pub(crate) alignment: Option<Address<NetworkUnchecked>>,
   #[clap(long, help = "Send any change output to <CHANGE>.")]
-  pub(crate) change: Option<Address>,
+  pub(crate) change: Option<Address<NetworkUnchecked>>,
   #[clap(
     long,
     help = "Target amount of postage to include in the sent output. Default `10000 sats`"
@@ -50,9 +50,7 @@ pub struct SendAllOutput {
 
 impl Send {
   pub(crate) fn run(self, options: Options) -> Result {
-    options
-      .chain()
-      .check_address_is_valid_for_network(&self.address)?;
+    let address = self.address.clone().require_network(options.chain().network())?;
 
     let index = Index::open(&options)?;
     index.update()?;
@@ -93,7 +91,7 @@ impl Send {
           bail!("--coin_control and --utxo don't work when sending cardinals");
         }
 
-        self.send_amount(amount, &client, inscriptions, unspent_outputs)?;
+        self.send_amount(address, amount, &client, inscriptions, unspent_outputs)?;
         return Ok(());
       }
       Outgoing::All => {
@@ -101,7 +99,7 @@ impl Send {
           bail!("--coin_control and --utxo don't work when sending cardinals");
         }
 
-        self.send_all_or_max(&client, inscriptions, unspent_outputs)?;
+        self.send_all_or_max(&client, address, inscriptions, unspent_outputs)?;
         return Ok(());
       }
       Outgoing::Max => {
@@ -109,25 +107,30 @@ impl Send {
           bail!("--coin_control and --utxo don't work when sending cardinals");
         }
 
-        self.send_all_or_max(&client, inscriptions, unspent_outputs)?;
+        self.send_all_or_max(&client, address, inscriptions, unspent_outputs)?;
         return Ok(());
       }
     };
 
     let change = [
-      get_change_address(&client)?,
+      get_change_address(&client, &options)?,
       match self.change {
-        Some(change) => change,
-        None => get_change_address(&client)?,
+        Some(change) => Some(change.require_network(options.chain().network()).unwrap()).unwrap(),
+        None => get_change_address(&client, &options)?,
       },
     ];
+
+    let alignment = match self.alignment {
+      Some(alignment) => Some(alignment.require_network(options.chain().network()).unwrap()),
+      None => None,
+    };
 
     let unsigned_transaction = TransactionBuilder::build_transaction_with_postage(
       satpoint,
       inscriptions,
       unspent_outputs,
-      self.address,
-      self.alignment,
+      address,
+      alignment,
       change,
       self.fee_rate,
       self.max_inputs,
@@ -154,6 +157,7 @@ impl Send {
 
   fn send_amount(
     self,
+    address: Address,
     amount: Amount,
     client: &Client,
     inscriptions: BTreeMap<SatPoint, InscriptionId>,
@@ -163,16 +167,16 @@ impl Send {
     let txid = client.call(
       "sendtoaddress",
       &[
-        self.address.to_string().into(),        //  1. address
+        address.to_string().into(),             //  1. address
         amount.to_btc().into(),                 //  2. amount
         serde_json::Value::Null,                //  3. comment
         serde_json::Value::Null,                //  4. comment_to
         serde_json::Value::Null,                //  5. subtractfeefromamount
         serde_json::Value::Null,                //  6. replaceable
         serde_json::Value::Null,                //  7. conf_target
-        serde_json::Value::Null,                //  8. estimate_mode
+        "unset".into(),                         //  8. estimate_mode
         serde_json::Value::Null,                //  9. avoid_reuse
-        self.fee_rate.fee(1.0).to_sat().into(), // 10. fee_rate
+        self.fee_rate.rate().into(),            // 10. fee_rate - in sat/vB
       ],
     )?;
     print_json(Output { transaction: txid })?;
@@ -182,6 +186,7 @@ impl Send {
   fn send_all_or_max(
     self,
     client: &Client,
+    address: Address,
     inscriptions: BTreeMap<SatPoint, InscriptionId>,
     unspent_outputs: BTreeMap<bitcoin::OutPoint, bitcoin::Amount>,
   ) -> Result {
@@ -189,10 +194,10 @@ impl Send {
     let result: SendAllOutput = client.call(
       "sendall",
       &[
-        vec![serde_json::to_value((self.address).to_string())?].into(), //  1. recipients
+        vec![serde_json::to_value((address).to_string())?].into(), //       1. recipients
         serde_json::Value::Null, //                                         2. conf_target
-        serde_json::Value::Null, //                                         3. estimate_mode
-        self.fee_rate.fee(1.0).to_sat().into(), //                          4. fee_rate
+        "unset".into(), //                                                  3. estimate_mode
+        self.fee_rate.rate().into(), //                                     4. fee_rate - in sat/vB
         serde_json::from_str(if self.outgoing == Outgoing::Max {
           "{\"send_max\": true}" //                                         5. options
         } else {

@@ -3,15 +3,16 @@ use {
   crate::wallet::Wallet,
   bitcoin::{
     blockdata::{opcodes, script},
+    key::PrivateKey,
+    key::{TapTweak, TweakedKeyPair, TweakedPublicKey, UntweakedKeyPair},
+    locktime::absolute::LockTime,
     policy::MAX_STANDARD_TX_WEIGHT,
-    schnorr::{TapTweak, TweakedKeyPair, TweakedPublicKey, UntweakedKeyPair},
     secp256k1::{
       self, constants::SCHNORR_SIGNATURE_SIZE, rand, schnorr::Signature, Secp256k1, XOnlyPublicKey,
     },
-    util::key::PrivateKey,
-    util::sighash::{Prevouts, SighashCache},
-    util::taproot::{ControlBlock, LeafVersion, TapLeafHash, TaprootBuilder},
-    PackedLockTime, SchnorrSighashType, Witness,
+    sighash::{Prevouts, SighashCache, TapSighashType},
+    taproot::{ControlBlock, LeafVersion, TapLeafHash, TaprootBuilder},
+    ScriptBuf, Witness,
   },
   bitcoincore_rpc::bitcoincore_rpc_json::{ImportDescriptors, Timestamp},
   bitcoincore_rpc::Client,
@@ -25,7 +26,7 @@ use {
 
 #[derive(Deserialize)]
 pub struct DecodeRawTransactionOutput {
-  pub weight: usize,
+  pub weight: bitcoin::Weight,
 }
 
 #[derive(Serialize)]
@@ -34,9 +35,9 @@ struct OutputDump {
   inscriptions: Vec<InscriptionId>,
   filenames: Vec<PathBuf>,
   commit: String,
-  commit_weight: usize,
+  commit_weight: bitcoin::Weight,
   reveals: Vec<String>,
-  reveal_weights: Vec<usize>,
+  reveal_weights: Vec<bitcoin::Weight>,
   recovery_descriptors: Vec<String>,
   fees: u64,
 }
@@ -94,11 +95,11 @@ pub(crate) struct Inscribe {
   )]
   pub(crate) dump: bool,
   #[clap(long, help = "Send inscription to <DESTINATION>.")]
-  pub(crate) destination: Vec<Address>,
+  pub(crate) destination: Vec<Address<NetworkUnchecked>>,
   #[clap(long, help = "Send any alignment output to <ALIGNMENT>.")]
-  pub(crate) alignment: Option<Address>,
+  pub(crate) alignment: Option<Address<NetworkUnchecked>>,
   #[clap(long, help = "Send any change output to <CHANGE>.")]
-  pub(crate) change: Option<Address>,
+  pub(crate) change: Option<Address<NetworkUnchecked>>,
   #[clap(
     long,
     help = "Amount of postage to include in the inscription. Default `10000 sats`"
@@ -174,10 +175,7 @@ impl Inscribe {
         }
 
         let address = Address::from_str(destination)?;
-        options
-          .chain()
-          .check_address_is_valid_for_network(&address)?;
-        destinations.push(address);
+        destinations.push(address.require_network(options.chain().network())?);
         line_number += 1;
       }
     } else {
@@ -189,18 +187,15 @@ impl Inscribe {
       if self.destination.is_empty() {
         tprintln!("[get destination addresses]");
         for (i, _) in self.files.iter().enumerate() {
-          destinations.push(get_change_address(&client)?);
+          destinations.push(get_change_address(&client, &options)?);
           if (i + 1) % 100 == 0 {
             tprintln!("  [{}]", i + 1);
           }
         }
       } else {
-        for destination in &self.destination {
-          options
-            .chain()
-            .check_address_is_valid_for_network(destination)?;
-        }
-        destinations = self.destination;
+        destinations = self.destination.iter()
+          .map(|dest| dest.clone().require_network(options.chain().network()).unwrap())
+          .collect();
       }
     }
 
@@ -234,12 +229,17 @@ impl Inscribe {
 
     tprintln!("[get change]");
     let commit_tx_change = [
-      get_change_address(&client)?,
+      get_change_address(&client, &options)?,
       match self.change {
-        Some(change) => change,
-        None => get_change_address(&client)?,
+        Some(change) => change.require_network(options.chain().network()).unwrap(),
+        None => get_change_address(&client, &options)?,
       },
     ];
+
+    let alignment = match self.alignment {
+      Some(alignment) => Some(alignment.require_network(options.chain().network()).unwrap()),
+      None => None,
+    };
 
     tprintln!("[create_inscription_transactions]");
     let (satpoint, unsigned_commit_tx, reveal_txs, mut recovery_key_pairs) =
@@ -251,7 +251,7 @@ impl Inscribe {
         utxos.clone(),
         commit_tx_change,
         destinations,
-        self.alignment,
+        alignment,
         self.commit_fee_rate.unwrap_or(self.fee_rate),
         self.fee_rate,
         self.max_inputs,
@@ -276,7 +276,7 @@ impl Inscribe {
         &[signed_raw_commit_tx.raw_hex().into()],
       )?
       .weight;
-    if !self.no_limit && commit_weight > MAX_STANDARD_TX_WEIGHT as usize {
+    if !self.no_limit && commit_weight > bitcoin::Weight::from_wu(MAX_STANDARD_TX_WEIGHT.into()) {
       bail!(
         "commit transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {commit_weight}"
       );
@@ -563,8 +563,8 @@ impl Inscribe {
       key_pairs.push(key_pair);
 
       let reveal_script = inscription.append_reveal_script(
-        script::Builder::new()
-          .push_slice(&public_key.serialize())
+        ScriptBuf::builder()
+          .push_slice(public_key.serialize())
           .push_opcode(opcodes::all::OP_CHECKSIG),
         cursed,
       );
@@ -668,13 +668,13 @@ impl Inscribe {
           0,
           &Prevouts::All(&[output]),
           TapLeafHash::from_script(&reveal_script, LeafVersion::TapScript),
-          SchnorrSighashType::Default,
+          TapSighashType::Default,
         )
         .expect("signature hash should compute");
 
       let secp256k1 = Secp256k1::new();
       let signature = secp256k1.sign_schnorr(
-        &secp256k1::Message::from_slice(signature_hash.as_inner())
+        &secp256k1::Message::from_slice(signature_hash.as_ref())
           .expect("should be cryptographically secure hash"),
         &key_pair,
       );
@@ -701,7 +701,7 @@ impl Inscribe {
       let reveal_weight = reveal_tx.weight();
       reveal_txs.push(reveal_tx);
 
-      if !no_limit && reveal_weight > MAX_STANDARD_TX_WEIGHT.try_into().unwrap() {
+      if !no_limit && reveal_weight > bitcoin::Weight::from_wu(MAX_STANDARD_TX_WEIGHT.into()) {
         bail!(
           "reveal transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {reveal_weight}"
         );
@@ -771,7 +771,7 @@ impl Inscribe {
         sequence: Sequence::ENABLE_RBF_NO_LOCKTIME,
       }],
       output: vec![output],
-      lock_time: PackedLockTime::ZERO,
+      lock_time: LockTime::ZERO,
       version: 1,
     };
 
@@ -786,7 +786,7 @@ impl Inscribe {
       reveal_tx.input[0].witness.push(script);
       reveal_tx.input[0].witness.push(&control_block.serialize());
 
-      fee_rate.fee(reveal_tx.weight() as f64 / 4.0)
+      fee_rate.fee(reveal_tx.weight())
     };
 
     (reveal_tx, fee)

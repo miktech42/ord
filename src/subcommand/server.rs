@@ -200,8 +200,12 @@ impl Server {
         .route("/inscriptions", get(Self::inscriptions))
         .route("/inscriptions/:from", get(Self::inscriptions_from))
         .route(
+          "/inscriptions_json/:start",
+          get(Self::inscriptions_json_start),
+        )
+        .route(
           "/inscriptions_json/:start/:end",
-          get(Self::inscriptions_json),
+          get(Self::inscriptions_json_start_end),
         )
         .route("/install.sh", get(Self::install_script))
         .route("/ordinal/:sat", get(Self::ordinal))
@@ -430,7 +434,7 @@ impl Server {
         sat,
         satpoint,
         blocktime: index.block_time(sat.height())?,
-        inscription: index.get_inscription_id_by_sat(sat)?,
+        inscriptions: index.get_inscription_ids_by_sat(sat)?,
       }
       .page(page_config, index.has_sat_index()?),
     )
@@ -462,7 +466,7 @@ impl Server {
 
       TxOut {
         value,
-        script_pubkey: Script::new(),
+        script_pubkey: ScriptBuf::new(),
       }
     } else {
       index
@@ -1029,15 +1033,30 @@ impl Server {
     )
   }
 
-  async fn inscriptions_json(
+  async fn inscriptions_json_start(
+    Extension(page_config): Extension<Arc<PageConfig>>,
+    Extension(index): Extension<Arc<Index>>,
+    Path(start): Path<i64>,
+  ) -> ServerResult<String> {
+    Self::inscriptions_json(page_config, index, start, start + 1).await
+  }
+
+  async fn inscriptions_json_start_end(
     Extension(page_config): Extension<Arc<PageConfig>>,
     Extension(index): Extension<Arc<Index>>,
     Path(path): Path<(i64, i64)>,
   ) -> ServerResult<String> {
-    const MAX_JSON_INSCRIPTIONS: i64 = 10000;
+    Self::inscriptions_json(page_config, index, path.0, path.1).await
+  }
 
-    let start = path.0;
-    let end = path.1;
+  async fn inscriptions_json(
+    page_config: Arc<PageConfig>,
+    index: Arc<Index>,
+    start: i64,
+    end: i64,
+  ) -> ServerResult<String> {
+    const MAX_JSON_INSCRIPTIONS: i64 = 1000;
+
     match start.cmp(&end) {
       Ordering::Equal => Err(ServerError::BadRequest("range length == 0".to_string())),
       Ordering::Greater => Err(ServerError::BadRequest("range length < 0".to_string())),
@@ -1201,7 +1220,7 @@ mod tests {
     fn new_with_regtest() -> Self {
       Self::new_server(
         test_bitcoincore_rpc::builder()
-          .network(bitcoin::Network::Regtest)
+          .network(bitcoin::network::constants::Network::Regtest)
           .build(),
         None,
         &["--chain", "regtest"],
