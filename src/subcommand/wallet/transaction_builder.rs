@@ -724,6 +724,18 @@ impl TransactionBuilder {
     }
     assert!(found, "invariant: outgoing sat is found in outputs");
 
+    for recipient in &self.recipient {
+      assert_eq!(
+        transaction
+          .output
+          .iter()
+          .filter(|tx_out| tx_out.script_pubkey == recipient.script_pubkey())
+          .count(),
+        1,
+        "invariant: recipient address appears exactly once in outputs",
+      );
+    }
+
     assert!(
       self
         .change_addresses
@@ -1671,7 +1683,7 @@ mod tests {
     .unwrap();
 
     let fee = fee_rate
-      .fee((transaction.weight() + TransactionBuilder::SCHNORR_SIGNATURE_SIZE) as f64 / 4.0 + 1.0);
+      .fee(Weight::from_wu(transaction.weight().to_wu() + TransactionBuilder::SCHNORR_SIGNATURE_SIZE as u64 + 4));
 
     pretty_assert_eq!(
       transaction,
@@ -1808,9 +1820,9 @@ mod tests {
 
   #[test]
   fn additional_input_size_is_correct() {
-    let before = TransactionBuilder::estimate_weight_with(0, Vec::new());
-    let after = TransactionBuilder::estimate_weight_with(1, Vec::new());
-    assert_eq!(after - before, TransactionBuilder::ADDITIONAL_INPUT_VBYTES);
+    let before = TransactionBuilder::estimate_weight_with(1, Vec::new());
+    let after = TransactionBuilder::estimate_weight_with(2, Vec::new());
+    assert_eq!(after - before, TransactionBuilder::ADDITIONAL_INPUT_WEIGHT);
   }
 
   #[test]

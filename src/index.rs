@@ -1647,7 +1647,7 @@ mod tests {
   fn find_first_sat() {
     let context = Context::builder().arg("--index-sats").build();
     assert_eq!(
-      context.index.find(0).unwrap().unwrap(),
+      context.index.find(0, &Vec::new()).unwrap().unwrap(),
       SatPoint {
         outpoint: "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b:0"
           .parse()
@@ -1661,7 +1661,7 @@ mod tests {
   fn find_second_sat() {
     let context = Context::builder().arg("--index-sats").build();
     assert_eq!(
-      context.index.find(1).unwrap().unwrap(),
+      context.index.find(1, &Vec::new()).unwrap().unwrap(),
       SatPoint {
         outpoint: "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b:0"
           .parse()
@@ -1676,7 +1676,7 @@ mod tests {
     let context = Context::builder().arg("--index-sats").build();
     context.mine_blocks(1);
     assert_eq!(
-      context.index.find(50 * COIN_VALUE).unwrap().unwrap(),
+      context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap().unwrap(),
       SatPoint {
         outpoint: "30f2f037629c6a21c1f40ed39b9bd6278df39762d68d07f49582b23bcb23386a:0"
           .parse()
@@ -1689,7 +1689,7 @@ mod tests {
   #[test]
   fn find_unmined_sat() {
     let context = Context::builder().arg("--index-sats").build();
-    assert_eq!(context.index.find(50 * COIN_VALUE).unwrap(), None);
+    assert_eq!(context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap(), None);
   }
 
   #[test]
@@ -1703,7 +1703,7 @@ mod tests {
     });
     context.mine_blocks(1);
     assert_eq!(
-      context.index.find(50 * COIN_VALUE).unwrap().unwrap(),
+      context.index.find(50 * COIN_VALUE, &Vec::new()).unwrap().unwrap(),
       SatPoint {
         outpoint: OutPoint::new(spend_txid, 0),
         offset: 0,

@@ -169,7 +169,7 @@ impl Server {
         if let Err(error) = index_clone.update() {
           log::warn!("{error}");
         }
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(10000));
       });
       INDEXER.lock().unwrap().replace(index_thread);
 

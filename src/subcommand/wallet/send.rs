@@ -174,7 +174,7 @@ impl Send {
         serde_json::Value::Null,                //  5. subtractfeefromamount
         serde_json::Value::Null,                //  6. replaceable
         serde_json::Value::Null,                //  7. conf_target
-        "unset".into(),                         //  8. estimate_mode
+        serde_json::Value::Null,                //  8. estimate_mode
         serde_json::Value::Null,                //  9. avoid_reuse
         self.fee_rate.rate().into(),            // 10. fee_rate - in sat/vB
       ],
@@ -196,7 +196,7 @@ impl Send {
       &[
         vec![serde_json::to_value((address).to_string())?].into(), //       1. recipients
         serde_json::Value::Null, //                                         2. conf_target
-        "unset".into(), //                                                  3. estimate_mode
+        serde_json::Value::Null, //                                         3. estimate_mode
         self.fee_rate.rate().into(), //                                     4. fee_rate - in sat/vB
         serde_json::from_str(if self.outgoing == Outgoing::Max {
           "{\"send_max\": true}" //                                         5. options

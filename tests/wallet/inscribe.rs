@@ -246,7 +246,7 @@ fn inscribe_with_fee_rate() {
     fee -= output.value;
   }
 
-  let fee_rate = fee as f64 / (tx1.weight() as f64 / 4.0);
+  let fee_rate = fee as f64 / (tx1.weight().to_wu() as f64 / 4.0);
 
   pretty_assert_eq!(fee_rate, 2.0);
 
@@ -259,7 +259,7 @@ fn inscribe_with_fee_rate() {
     fee -= output.value;
   }
 
-  let fee_rate = fee as f64 / (tx2.weight() as f64 / 4.0);
+  let fee_rate = fee as f64 / (tx2.weight().to_wu() as f64 / 4.0);
 
   pretty_assert_eq!(fee_rate, 2.0);
 }
@@ -289,7 +289,7 @@ fn inscribe_with_commit_fee_rate() {
     fee -= output.value;
   }
 
-  let fee_rate = fee as f64 / (tx1.weight() as f64 / 4.0);
+  let fee_rate = fee as f64 / (tx1.weight().to_wu() as f64 / 4.0);
 
   pretty_assert_eq!(fee_rate, 2.0);
 
@@ -303,7 +303,7 @@ fn inscribe_with_commit_fee_rate() {
   }
 
   // weight is 1058 so vsize is 264.5 and fee is 265, so the fee_rate isn't exactly 1.0
-  pretty_assert_eq!(fee, (tx2.weight() as f64 / 4.0 - 1e-8).ceil() as u64);
+  pretty_assert_eq!(fee, (tx2.weight().to_wu() as f64 / 4.0 - 1e-8).ceil() as u64);
 }
 
 #[test]

@@ -51,19 +51,19 @@ mod tests {
   #[test]
   fn fee() {
     assert_eq!(
-      "2.5".parse::<FeeRate>().unwrap().fee(100.0),
+      "2.5".parse::<FeeRate>().unwrap().fee(Weight::from_vb(100).unwrap()),
       Amount::from_sat(250)
     );
     assert_eq!(
-      "2.0".parse::<FeeRate>().unwrap().fee(1024.0),
+      "2.0".parse::<FeeRate>().unwrap().fee(Weight::from_vb(1024).unwrap()),
       Amount::from_sat(2048)
     );
     assert_eq!(
-      "1.1".parse::<FeeRate>().unwrap().fee(100.0),
+      "1.1".parse::<FeeRate>().unwrap().fee(Weight::from_vb(100).unwrap()),
       Amount::from_sat(110)
     );
     assert_eq!(
-      "1.0".parse::<FeeRate>().unwrap().fee(123456789.0),
+      "1.0".parse::<FeeRate>().unwrap().fee(Weight::from_vb(123456789).unwrap()),
       Amount::from_sat(123456789)
     );
   }

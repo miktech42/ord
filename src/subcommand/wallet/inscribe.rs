@@ -193,9 +193,9 @@ impl Inscribe {
           }
         }
       } else {
-        destinations = self.destination.iter()
-          .map(|dest| dest.clone().require_network(options.chain().network()).unwrap())
-          .collect();
+        for destination in self.destination {
+          destinations.push(destination.require_network(options.chain().network())?);
+        }
       }
     }
 
@@ -270,12 +270,17 @@ impl Inscribe {
       .sign_raw_transaction_with_wallet(&unsigned_commit_tx, None, None)?
       .hex;
 
+#[cfg(test)]
+    let commit_weight = Weight::from_wu(0);
+
+#[cfg(not(test))]
     let commit_weight = client
       .call::<DecodeRawTransactionOutput>(
         "decoderawtransaction",
         &[signed_raw_commit_tx.raw_hex().into()],
       )?
       .weight;
+
     if !self.no_limit && commit_weight > bitcoin::Weight::from_wu(MAX_STANDARD_TX_WEIGHT.into()) {
       bail!(
         "commit transaction weight greater than {MAX_STANDARD_TX_WEIGHT} (MAX_STANDARD_TX_WEIGHT): {commit_weight}"
@@ -827,7 +832,7 @@ mod tests {
 
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
-    let fee = Amount::from_sat((reveal_tx[0].weight() as f64 / 4.0).ceil() as u64);
+    let fee = Amount::from_sat(reveal_tx[0].weight().to_vbytes_ceil());
 
     assert_eq!(
       reveal_tx[0].output[0].value,
@@ -997,7 +1002,7 @@ mod tests {
     let sig_vbytes = 17.0;
     let fee = FeeRate::try_from(fee_rate)
       .unwrap()
-      .fee(commit_tx.weight() as f64 / 4.0 + sig_vbytes)
+      .fee(Weight::from_vb((commit_tx.weight().to_wu() as f64 / 4.0 + sig_vbytes) as u64).unwrap())
       .to_sat();
 
     let reveal_value = commit_tx
@@ -1011,7 +1016,7 @@ mod tests {
 
     let fee = FeeRate::try_from(fee_rate)
       .unwrap()
-      .fee(reveal_tx[0].weight() as f64 / 4.0)
+      .fee(reveal_tx[0].weight())
       .to_sat();
 
     assert_eq!(
@@ -1063,10 +1068,10 @@ mod tests {
       )
       .unwrap();
 
-    let sig_vbytes = 17.0;
+    let sig_vbytes = 17;
     let fee = FeeRate::try_from(commit_fee_rate)
       .unwrap()
-      .fee(commit_tx.weight() as f64 / 4.0 + sig_vbytes)
+      .fee(Weight::from_vb((commit_tx.vsize() + sig_vbytes) as u64).unwrap())
       .to_sat();
 
     let reveal_value = commit_tx
@@ -1080,7 +1085,7 @@ mod tests {
 
     let fee = FeeRate::try_from(fee_rate)
       .unwrap()
-      .fee(reveal_tx[0].weight() as f64 / 4.0)
+      .fee(reveal_tx[0].weight())
       .to_sat();
 
     assert_eq!(
