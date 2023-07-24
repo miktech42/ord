@@ -13,6 +13,7 @@ mod server;
 pub mod subsidy;
 pub mod supply;
 pub mod traits;
+pub mod transfer;
 pub mod wallet;
 
 fn print_json(output: impl Serialize) -> Result {
@@ -49,6 +50,8 @@ pub(crate) enum Subcommand {
   Supply,
   #[clap(about = "Display satoshi traits")]
   Traits(traits::Traits),
+  #[clap(about = "Modify transfer log table")]
+  Transfer(transfer::Transfer),
   #[clap(subcommand, about = "Wallet commands")]
   Wallet(wallet::Wallet),
 }
@@ -74,6 +77,7 @@ impl Subcommand {
       }
       Self::Supply => supply::run(),
       Self::Traits(traits) => traits.run(),
+      Self::Transfer(transfer) => transfer.run(options),
       Self::Wallet(wallet) => wallet.run(options),
     }
   }

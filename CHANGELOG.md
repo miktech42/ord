@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm2) - 2023-07-24
+--------------------------------------------------------------------------------
+
+### Changed
+- Add `transfer` subcommand for modifying the transfer log table.
+
 [0.8.1-gm1](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm1) - 2023-07-23
 --------------------------------------------------------------------------------
 
