@@ -236,10 +236,11 @@ impl Inscribe {
       },
     ];
 
-    let alignment = match self.alignment {
-      Some(alignment) => Some(alignment.require_network(options.chain().network()).unwrap()),
-      None => None,
-    };
+    let alignment = self.alignment.map(|alignment| {
+      alignment
+        .require_network(options.chain().network())
+        .unwrap()
+    });
 
     tprintln!("[create_inscription_transactions]");
     let (satpoint, unsigned_commit_tx, reveal_txs, mut recovery_key_pairs) =
@@ -270,10 +271,10 @@ impl Inscribe {
       .sign_raw_transaction_with_wallet(&unsigned_commit_tx, None, None)?
       .hex;
 
-#[cfg(test)]
+    #[cfg(test)]
     let commit_weight = Weight::from_wu(0);
 
-#[cfg(not(test))]
+    #[cfg(not(test))]
     let commit_weight = client
       .call::<DecodeRawTransactionOutput>(
         "decoderawtransaction",
@@ -1000,6 +1001,8 @@ mod tests {
       .unwrap();
 
     let sig_vbytes = 17.0;
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     let fee = FeeRate::try_from(fee_rate)
       .unwrap()
       .fee(Weight::from_vb((commit_tx.weight().to_wu() as f64 / 4.0 + sig_vbytes) as u64).unwrap())

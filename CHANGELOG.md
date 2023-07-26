@@ -1,6 +1,31 @@
 Changelog
 =========
 
+[0.8.1-gm6](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm6) - 2023-07-25
+--------------------------------------------------------------------------------
+
+### Changed
+- Merge from upstream. `wallet inscriptions` now labels the postage amount as `postage` not as `amount`.
+
+[0.8.1-gm5](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm5) - 2023-07-25
+--------------------------------------------------------------------------------
+
+### Added
+- Tell the user if their database is corrupted before starting to repair it.
+
+[0.8.1-gm4](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm4) - 2023-07-25
+--------------------------------------------------------------------------------
+
+### Added
+- Add `/stats` endpoint to get the highest block indexed and the range of inscriptions that exist.
+
+[0.8.1-gm3](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm3) - 2023-07-25
+--------------------------------------------------------------------------------
+
+### Added
+- Add request logging to the server when RUST_LOG=INFO is set.
+- Add `--no-progress-bar` flag to inhibit the display of the progress bar.
+
 [0.8.1-gm2](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm2) - 2023-07-24
 --------------------------------------------------------------------------------
 

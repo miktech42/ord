@@ -125,8 +125,9 @@ pub struct TransactionBuilder {
 type Result<T> = std::result::Result<T, Error>;
 
 impl TransactionBuilder {
+  #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
   const ADDITIONAL_INPUT_WEIGHT: Weight = Weight::from_wu((57.5 * 4.0) as u64);
-  const ADDITIONAL_OUTPUT_WEIGHT: Weight = Weight::from_wu((43.0 * 4.0) as u64);
+  const ADDITIONAL_OUTPUT_WEIGHT: Weight = Weight::from_wu(43 * 4);
   const SCHNORR_SIGNATURE_SIZE: usize = 64;
   pub(crate) const DEFAULT_MAX_POSTAGE: Amount = Amount::from_sat(2 * 10_000);
   pub(crate) const DEFAULT_TARGET_POSTAGE: Amount = Amount::from_sat(10_000);
@@ -1682,8 +1683,9 @@ mod tests {
     )
     .unwrap();
 
-    let fee = fee_rate
-      .fee(Weight::from_wu(transaction.weight().to_wu() + TransactionBuilder::SCHNORR_SIGNATURE_SIZE as u64 + 4));
+    let fee = fee_rate.fee(Weight::from_wu(
+      transaction.weight().to_wu() + TransactionBuilder::SCHNORR_SIGNATURE_SIZE as u64 + 4,
+    ));
 
     pretty_assert_eq!(
       transaction,

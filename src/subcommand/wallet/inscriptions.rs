@@ -7,7 +7,7 @@ pub struct OutputWithSat {
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub explorer: String,
-  pub amount: u64,
+  pub postage: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,7 +16,7 @@ pub struct OutputWithoutSat {
   pub inscription: InscriptionId,
   pub location: SatPoint,
   pub explorer: String,
-  pub amount: u64,
+  pub postage: u64,
 }
 
 pub(crate) fn run(options: Options) -> Result {
@@ -39,7 +39,7 @@ pub(crate) fn run(options: Options) -> Result {
   let mut output_without_sat = Vec::new();
 
   for (location, inscription) in inscriptions {
-    if unspent_outputs.contains_key(&location.outpoint) {
+    if let Some(postage) = unspent_outputs.get(&location.outpoint) {
       let entry = index
         .get_inscription_entry(inscription)?
         .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
@@ -50,7 +50,7 @@ pub(crate) fn run(options: Options) -> Result {
           location,
           inscription,
           explorer: format!("{explorer}{inscription}"),
-          amount: unspent_outputs.get(&location.outpoint).unwrap().to_sat(),
+          postage: postage.to_sat(),
         });
       } else {
         output_without_sat.push(OutputWithoutSat {
@@ -58,7 +58,7 @@ pub(crate) fn run(options: Options) -> Result {
           location,
           inscription,
           explorer: format!("{explorer}{inscription}"),
-          amount: unspent_outputs.get(&location.outpoint).unwrap().to_sat(),
+          postage: postage.to_sat(),
         });
       }
     }

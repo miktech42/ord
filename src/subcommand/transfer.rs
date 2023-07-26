@@ -33,7 +33,11 @@ impl Transfer {
     if rows == 0 {
       println!("the transfer table has {rows} rows");
     } else {
-      println!("the transfer table has {rows} rows from height {} to height {}", first_key.unwrap(), last_key.unwrap());
+      println!(
+        "the transfer table has {rows} rows from height {} to height {}",
+        first_key.unwrap(),
+        last_key.unwrap()
+      );
     }
 
     Ok(())

@@ -44,6 +44,11 @@ pub(crate) struct Options {
   pub(crate) index: Option<PathBuf>,
   #[clap(long, help = "Track location of all satoshis.")]
   pub(crate) index_sats: bool,
+  #[clap(
+    long,
+    help = "Inhibit the display of the progress bar while updating the index."
+  )]
+  pub(crate) no_progress_bar: bool,
   #[clap(long, short, help = "Use regtest. Equivalent to `--chain regtest`.")]
   pub(crate) regtest: bool,
   #[clap(long, help = "Connect to Bitcoin Core RPC at <RPC_URL>.")]

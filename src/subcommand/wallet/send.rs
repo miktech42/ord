@@ -50,7 +50,10 @@ pub struct SendAllOutput {
 
 impl Send {
   pub(crate) fn run(self, options: Options) -> Result {
-    let address = self.address.clone().require_network(options.chain().network())?;
+    let address = self
+      .address
+      .clone()
+      .require_network(options.chain().network())?;
 
     let index = Index::open(&options)?;
     index.update()?;
@@ -120,10 +123,11 @@ impl Send {
       },
     ];
 
-    let alignment = match self.alignment {
-      Some(alignment) => Some(alignment.require_network(options.chain().network()).unwrap()),
-      None => None,
-    };
+    let alignment = self.alignment.map(|alignment| {
+      alignment
+        .require_network(options.chain().network())
+        .unwrap()
+    });
 
     let unsigned_transaction = TransactionBuilder::build_transaction_with_postage(
       satpoint,
@@ -167,16 +171,16 @@ impl Send {
     let txid = client.call(
       "sendtoaddress",
       &[
-        address.to_string().into(),             //  1. address
-        amount.to_btc().into(),                 //  2. amount
-        serde_json::Value::Null,                //  3. comment
-        serde_json::Value::Null,                //  4. comment_to
-        serde_json::Value::Null,                //  5. subtractfeefromamount
-        serde_json::Value::Null,                //  6. replaceable
-        serde_json::Value::Null,                //  7. conf_target
-        serde_json::Value::Null,                //  8. estimate_mode
-        serde_json::Value::Null,                //  9. avoid_reuse
-        self.fee_rate.rate().into(),            // 10. fee_rate - in sat/vB
+        address.to_string().into(),  //  1. address
+        amount.to_btc().into(),      //  2. amount
+        serde_json::Value::Null,     //  3. comment
+        serde_json::Value::Null,     //  4. comment_to
+        serde_json::Value::Null,     //  5. subtractfeefromamount
+        serde_json::Value::Null,     //  6. replaceable
+        serde_json::Value::Null,     //  7. conf_target
+        serde_json::Value::Null,     //  8. estimate_mode
+        serde_json::Value::Null,     //  9. avoid_reuse
+        self.fee_rate.rate().into(), // 10. fee_rate - in sat/vB
       ],
     )?;
     print_json(Output { transaction: txid })?;

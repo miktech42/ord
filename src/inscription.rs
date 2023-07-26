@@ -106,9 +106,7 @@ impl Inscription {
 
     if cursed {
       log::info!("Appending cursed tag");
-      builder = builder
-        .push_slice(CURSED_TAG)
-        .push_slice(CURSED_ID);
+      builder = builder.push_slice(CURSED_TAG).push_slice(CURSED_ID);
     }
 
     if let Some(body) = &self.body {
@@ -122,7 +120,9 @@ impl Inscription {
   }
 
   pub(crate) fn append_reveal_script(&self, builder: script::Builder, cursed: bool) -> ScriptBuf {
-    self.append_reveal_script_to_builder(builder, cursed).into_script()
+    self
+      .append_reveal_script_to_builder(builder, cursed)
+      .into_script()
   }
 
   pub(crate) fn media(&self) -> Media {

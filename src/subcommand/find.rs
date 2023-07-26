@@ -22,7 +22,6 @@ impl Find {
     index.update()?;
 
     match self.end {
-
       Some(end) => {
         if self.sat < end {
           match index.find_range(self.sat.0, end.0, &self.outpoint)? {

@@ -87,7 +87,7 @@ pub(crate) fn alignment() -> Option<Address> {
     "tb1qvcvz5rnmpaqnw2d3rzkn0xxkwjks8x7mg8qc80"
       .parse::<Address<NetworkUnchecked>>()
       .unwrap()
-      .assume_checked()
+      .assume_checked(),
   )
 }
 

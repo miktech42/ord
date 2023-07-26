@@ -170,7 +170,8 @@ impl Inscriptions {
     }
 
     let inscriptions = if self.order_by_sat {
-      index.get_inscriptions_by_sat( // missing
+      index.get_inscriptions_by_sat(
+        // missing
         self.limit,
         self.max_number,
         self.max_height,
@@ -178,7 +179,8 @@ impl Inscriptions {
         self.uncommon,
       )?
     } else {
-      index.get_inscriptions_by_inscription_number( // missing
+      index.get_inscriptions_by_inscription_number(
+        // missing
         self.limit,
         self.max_number,
         self.max_height,
