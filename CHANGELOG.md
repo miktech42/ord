@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[0.8.1-gm7](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm7) - 2023-07-29
+--------------------------------------------------------------------------------
+
+### Changed
+- Move the check for being able to write a file to before we send the commit tx.
+- Merge from upstream.
+
 [0.8.1-gm6](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm6) - 2023-07-25
 --------------------------------------------------------------------------------
 
@@ -39,7 +46,7 @@ Changelog
 - Merged 0.8.1 from upstream.
 - Recognize and display "text/plain" content type as text inscriptions.
 - Don't try indexing new blocks when there are no new blocks
-- Sleep 10 second between checking for new blocks
+- Sleep 10 seconds between checking for new blocks
 
 [0.8.1](https://github.com/ordinals/ord/releases/tag/0.8.1) - 2023-07-23
 ---------------------------------------------------------------------

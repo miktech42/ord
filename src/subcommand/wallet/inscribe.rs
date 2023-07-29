@@ -364,6 +364,17 @@ impl Inscribe {
       }
 
       if !self.no_broadcast {
+        // make sure before sending the commit tx that we can write to a file in the event that any of the reveals fail
+        let failed_reveals_filename = format!("failed-reveals-for-commit-{}.txt", unsigned_commit_tx.txid());
+        let file = fs::OpenOptions::new()
+          .create(true)
+          .write(true)
+          .open(&failed_reveals_filename);
+
+        if file.is_err() {
+          return Err(anyhow!("cannot write to the current directory"));
+        }
+
         let commit = client
           .send_raw_transaction(&signed_raw_commit_tx)
           .context("Failed to send commit transaction")?;
@@ -411,17 +422,6 @@ impl Inscribe {
                 }
         */
 
-        // make sure we can write to a file in the event that any of the reveals fail
-        let failed_reveals_filename = format!("failed-reveals-for-commit-{commit}.txt");
-        let file = fs::OpenOptions::new()
-          .create(true)
-          .write(true)
-          .open(&failed_reveals_filename);
-
-        if file.is_err() {
-          return Err(anyhow!("cannot write to the current directory"));
-        }
-
         let mut file = file?;
         client = options.bitcoin_rpc_client_for_wallet_command(false)?;
         let mut reveals = Vec::new();
@@ -429,11 +429,9 @@ impl Inscribe {
         for (_i, reveal_tx) in reveal_txs.iter().enumerate() {
           match client.send_raw_transaction(reveal_tx) {
             Ok(reveal) => {
-              // println!("ok {i}");
               reveals.push(reveal);
             }
             Err(_error) => {
-              // eprintln!("Failed to send reveal transaction {i}: {:?}]", _error);
               failed_reveals.push(reveal_tx.raw_hex());
             }
           };
