@@ -1,5 +1,6 @@
 use super::*;
 
+pub mod check_index;
 pub mod decode;
 pub mod epochs;
 pub mod find;
@@ -24,6 +25,8 @@ fn print_json(output: impl Serialize) -> Result {
 
 #[derive(Debug, Parser)]
 pub(crate) enum Subcommand {
+  #[clap(about = "Check whether the index file needs recovery without attempting recovery")]
+  CheckIndex(check_index::CheckIndex),
   #[clap(about = "Decode inscription data from a transaction output")]
   Decode(decode::Decode),
   #[clap(about = "List the first satoshis of each reward epoch")]
@@ -59,6 +62,7 @@ pub(crate) enum Subcommand {
 impl Subcommand {
   pub(crate) fn run(self, options: Options) -> Result {
     match self {
+      Self::CheckIndex(check_index) => check_index.run(options),
       Self::Decode(decode) => decode.run(options),
       Self::Epochs => epochs::run(),
       Self::Preview(preview) => preview.run(),

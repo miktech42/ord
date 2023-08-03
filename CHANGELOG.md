@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[0.8.1-gm8](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm8) - 2023-08-03
+--------------------------------------------------------------------------------
+
+### Changed
+- Renamed the old `--cursed` flag that attempted to make a cursed inscription using OP_66 to `--cursed66`. The inscriptions it creates are ignored by ord's indexer.
+
+### Added
+- Add `--check-index` subcommand to passively check the index file.
+- Add `--cursed` flag to create cursed inscriptions by inscribing in the 2nd reveal input instead of the 1st.
+
+The addition of the `--cursed` flag was requested and funded by mone (https://x.com/Luckycharm_NFT). He inscribed a cursed inscription and then reinscribed the same sat with a recursive non-cursed inscription. See https://ordinals.com/sat/1931140000000000 for the two inscriptions.
+
 [0.8.1-gm7](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm7) - 2023-07-29
 --------------------------------------------------------------------------------
 
