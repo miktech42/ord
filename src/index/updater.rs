@@ -33,6 +33,7 @@ pub(crate) struct Updater {
   range_cache: HashMap<OutPointValue, Vec<u8>>,
   height: u64,
   index_sats: bool,
+  index_utxos: bool,
   sat_ranges_since_flush: u64,
   outputs_cached: u64,
   outputs_inserted_since_flush: u64,
@@ -69,6 +70,7 @@ impl Updater {
       range_cache: HashMap::new(),
       height,
       index_sats: index.has_sat_index()?,
+      index_utxos: index.has_utxo_index()?,
       sat_ranges_since_flush: 0,
       outputs_cached: 0,
       outputs_inserted_since_flush: 0,
@@ -454,6 +456,11 @@ impl Updater {
     if self.index_sats {
       let mut sat_to_satpoint = wtx.open_table(SAT_TO_SATPOINT)?;
       let mut outpoint_to_sat_ranges = wtx.open_table(OUTPOINT_TO_SAT_RANGES)?;
+      let sat_to_outpoint = if self.index_utxos {
+        wtx.open_table(SAT_TO_OUTPOINT).ok()
+      } else {
+        None
+      };
 
       let mut coinbase_inputs = VecDeque::new();
 
@@ -522,24 +529,47 @@ impl Updater {
           .map(|ranges| ranges.value().to_vec())
           .unwrap_or_default();
 
-        for (start, end) in coinbase_inputs {
-          if !Sat(start).is_common() {
-            sat_to_satpoint.insert(
-              &start,
-              &SatPoint {
-                outpoint: OutPoint::null(),
-                offset: lost_sats,
-              }
-              .store(),
-            )?;
+        if let Some(mut sat_to_outpoint) = sat_to_outpoint {
+          for (start, end) in coinbase_inputs {
+            if !Sat(start).is_common() {
+              sat_to_satpoint.insert(
+                &start,
+                &SatPoint {
+                  outpoint: OutPoint::null(),
+                  offset: lost_sats,
+                }
+                .store(),
+              )?;
+            }
+
+            sat_to_outpoint.insert(&start, &OutPoint::null().store().store())?;
+
+            lost_sat_ranges.extend_from_slice(&(start, end).store());
+
+            lost_sats += end - start;
           }
 
-          lost_sat_ranges.extend_from_slice(&(start, end).store());
+          outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
+        } else {
+          for (start, end) in coinbase_inputs {
+            if !Sat(start).is_common() {
+              sat_to_satpoint.insert(
+                &start,
+                &SatPoint {
+                  outpoint: OutPoint::null(),
+                  offset: lost_sats,
+                }
+                .store(),
+              )?;
+            }
 
-          lost_sats += end - start;
+            lost_sat_ranges.extend_from_slice(&(start, end).store());
+
+            lost_sats += end - start;
+          }
+
+          outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
         }
-
-        outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
       }
     } else {
       for (tx, txid) in block.txdata.iter().skip(1).chain(block.txdata.first()) {
@@ -651,11 +681,28 @@ impl Updater {
       );
 
       let mut outpoint_to_sat_ranges = wtx.open_table(OUTPOINT_TO_SAT_RANGES)?;
+      let sat_to_outpoint = if self.index_utxos {
+        wtx.open_table(SAT_TO_OUTPOINT).ok()
+      } else {
+        None
+      };
 
-      for (outpoint, sat_range) in self.range_cache.drain() {
-        outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
+      if let Some(mut sat_to_outpoint) = sat_to_outpoint {
+        for (outpoint, sat_range) in self.range_cache.drain() {
+          outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
+
+          for chunk in sat_range.as_slice().chunks_exact(11) {
+            sat_to_outpoint.insert(
+              &SatRange::load(chunk.try_into().unwrap()).0,
+              &outpoint.store(),
+            )?;
+          }
+        }
+      } else {
+        for (outpoint, sat_range) in self.range_cache.drain() {
+          outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
+        }
       }
-
       self.outputs_inserted_since_flush = 0;
     }
 

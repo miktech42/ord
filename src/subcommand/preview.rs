@@ -46,6 +46,7 @@ impl Preview {
       data_dir: Some(tmpdir.path().into()),
       rpc_url: Some(format!("127.0.0.1:{rpc_port}")),
       index_sats: true,
+      index_utxos: false,
       ..Options::default()
     };
 

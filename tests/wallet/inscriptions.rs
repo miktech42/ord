@@ -93,11 +93,11 @@ fn inscriptions_with_postage() {
   create_wallet(&rpc_server);
   rpc_server.mine_blocks(1);
 
-  let Inscribe { inscription, .. } = inscribe(&rpc_server);
+  let Inscribe { inscriptions, .. } = inscribe(&rpc_server);
 
   let output = CommandBuilder::new("wallet inscriptions")
     .rpc_server(&rpc_server)
-    .run_and_check_output::<Vec<Output>>();
+    .run_and_check_output::<Vec<OutputWithoutSat>>();
 
   assert_eq!(output[0].postage, 10000);
 
@@ -107,8 +107,9 @@ fn inscriptions_with_postage() {
     .address;
 
   CommandBuilder::new(format!(
-    "wallet send --fee-rate 1 {} {inscription}",
-    address.assume_checked()
+    "wallet send --fee-rate 1 {} {}",
+    address.assume_checked(),
+    inscriptions[0]
   ))
   .rpc_server(&rpc_server)
   .expected_exit_code(0)
@@ -119,7 +120,7 @@ fn inscriptions_with_postage() {
 
   let output = CommandBuilder::new("wallet inscriptions")
     .rpc_server(&rpc_server)
-    .run_and_check_output::<Vec<Output>>();
+    .run_and_check_output::<Vec<OutputWithoutSat>>();
 
   assert_eq!(output[0].postage, 9889);
 }

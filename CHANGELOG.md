@@ -1,6 +1,39 @@
 Changelog
 =========
 
+[0.8.1-gm12](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm12) - 2023-08-06
+----------------------------------------------------------------------------------
+
+### Added
+- Add flags `--show-date`, and `--show-value` to `ord find` to add fields to the results.
+
+[0.8.1-gm11](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm11) - 2023-08-06
+----------------------------------------------------------------------------------
+
+### Added
+- Add flags `--show-address`, `--show-blockhash`, `--show-name`, `--show-time` to `ord find` to add fields to the results.
+
+### Changed
+- Store 3 bytes per outpoint not 2, to reduce the number of collisions.
+
+[0.8.1-gm10](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm10) - 2023-08-06
+----------------------------------------------------------------------------------
+
+### Added
+- Add `compact` subcommand to attempt compacting the database.
+- Add `--file` flag to `find` to allow specifying sats and ranges to search for in a file.
+- Add `--ignore` flag to `find` to ignore unmined sats and ranges while searching.
+
+### Changed
+- Check the reveal transaction weights against the mempool limit after signing them.
+
+[0.8.1-gm9](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm9) - 2023-08-05
+--------------------------------------------------------------------------------
+
+### Added
+- Add `--address` flag to `wallet inscriptions` to filter inscriptions by address.
+- Add an index to speed up `ord find`. Enable it with `--index-utxos` when creating `index.redb`.
+
 [0.8.1-gm8](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm8) - 2023-08-03
 --------------------------------------------------------------------------------
 

@@ -36,7 +36,7 @@ pub(crate) enum Wallet {
   #[clap(about = "Create inscription")]
   Inscribe(inscribe::Inscribe),
   #[clap(about = "List wallet inscriptions")]
-  Inscriptions,
+  Inscriptions(inscriptions::Inscriptions),
   #[clap(about = "Generate receive address")]
   Receive,
   #[clap(about = "Restore wallet")]
@@ -59,7 +59,7 @@ impl Wallet {
       Self::Balance => balance::run(options),
       Self::Create(create) => create.run(options),
       Self::Inscribe(inscribe) => inscribe.run(options),
-      Self::Inscriptions => inscriptions::run(options),
+      Self::Inscriptions(inscriptions) => inscriptions.run(options),
       Self::Receive => receive::run(options),
       Self::Restore(restore) => restore.run(options),
       Self::Sats(sats) => sats.run(options),

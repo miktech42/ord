@@ -1,8 +1,7 @@
 use super::*;
 
 #[derive(Debug, Parser)]
-pub(crate) struct CheckIndex {
-}
+pub(crate) struct CheckIndex {}
 
 impl CheckIndex {
   pub(crate) fn run(self, options: Options) -> Result {

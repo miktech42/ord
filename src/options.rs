@@ -46,6 +46,11 @@ pub(crate) struct Options {
   pub(crate) index_sats: bool,
   #[clap(
     long,
+    help = "Track location of all satoshis and the utxos that own them. Implies --index-sats."
+  )]
+  pub(crate) index_utxos: bool,
+  #[clap(
+    long,
     help = "Inhibit the display of the progress bar while updating the index."
   )]
   pub(crate) no_progress_bar: bool,
