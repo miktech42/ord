@@ -10,6 +10,12 @@ pub(crate) struct Find {
   outpoint: Vec<OutPoint>,
   #[clap(
     long,
+    default_value = "%Y-%m-%d %H:%M:%S",
+    help = "Set the format to use for dates. See 'https://docs.rs/chrono/latest/chrono/format/strftime/'."
+  )]
+  date_format: String,
+  #[clap(
+    long,
     help = "Read a list of sats and ranges to find from a file. One sat or range per line. Ranges written as <start>-<end>."
   )]
   file: Vec<PathBuf>,
@@ -135,7 +141,7 @@ impl Find {
     // loop through targets
     for (sat, end) in targets {
       // eprintln!("find {sat}-{end}");
-      match index.find(sat, end, &self.outpoint)? {
+      match index.find(sat, end, &self.outpoint, self.ignore)? {
         Some(result) => {
           // eprintln!("  found {} satpoints", result.len());
           results.extend(result);
@@ -199,7 +205,7 @@ impl Find {
           result.date = Some(
             NaiveDateTime::from_timestamp_opt(tx.time.unwrap() as i64, 0)
               .unwrap()
-              .format("%Y-%m-%d %H:%M:%S")
+              .format(&self.date_format)
               .to_string(),
           );
         }

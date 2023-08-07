@@ -773,6 +773,7 @@ impl Index {
     search_start: Sat,
     search_end: Sat,
     outpoints: &Vec<OutPoint>,
+    allow_bad_ranges: bool,
   ) -> Result<Option<Vec<FindRangeOutput>>> {
     self.require_sat_index("find")?;
 
@@ -781,7 +782,7 @@ impl Index {
 
     let rtx = self.begin_read()?;
 
-    if rtx.block_count()? <= Sat(search_end - 1).height().n() {
+    if !allow_bad_ranges && rtx.block_count()? <= Sat(search_end - 1).height().n() {
       return Ok(None);
     }
 
@@ -801,7 +802,10 @@ impl Index {
           let value = *value.value();
           let first_outpoint = OutPointPrefix::load(value);
           let last_outpoint = outpoint_prefix_end(value);
-          tprintln!("| sat {} value {:02x?}", sat, value);
+          tprintln!("| sat {sat} value {:02x?}", value);
+
+          let mut found = false;
+          let mut output_count = 1;
 
           // loop through all the outputs that match the 2 bytes we looked up
           'inner: for range in
@@ -810,7 +814,7 @@ impl Index {
             let (key, value) = range?;
             let mut offset = 0;
             tprintln!(
-              "| | found output: {:?}",
+              "| | found output {output_count}: {:?}",
               <OutPoint as Entry>::load(*key.value())
             );
 
@@ -822,7 +826,7 @@ impl Index {
 
               // our range will start with the key we found in SAT_TO_OUTPOINT
               if start == sat {
-                tprintln!("| | | this is our range");
+                tprintln!("| | | this is our range - in output number {output_count}");
                 if start < search_end && search_start < end {
                   let overlap_start = cmp::max(start, search_start);
                   let overlap_end = cmp::min(search_end, end);
@@ -847,15 +851,20 @@ impl Index {
                     remaining_sats
                   );
 
+                  // we found all the sats. we don't need to look at any other outputs at all
                   if remaining_sats == 0 {
                     tprintln!("| | | should break 'outer;");
                     break 'outer;
                   }
-                } else {
+                } else if allow_bad_ranges { // we shouldn't get here unless we know we aren't going to find all the sats because they don't all exist yet
+                  tprintln!("no overlap found - this would usually be a panic, but continuing because --ignore");
+                  break 'outer;
+                } else  {
                   panic!("no overlap");
                 }
 
                 // we found our range. we don't need to look at the other outputs with the same 2 byte start
+                found = true;
                 break 'inner;
               } else {
                 tprintln!("| | | not our range");
@@ -869,13 +878,26 @@ impl Index {
               );
               offset += end - start;
             } // loop 3 - for each range in the output
+
             tprintln!("| | that's it for this output - try the next output");
-          } // loop 2 - for each output that fits the pattern
-          tprintln!("| that's all the outputs - try the next sat");
-        } // loop 1 - for each 2 sat and 2 byte pattern
+            output_count += 1;
+          } // loop 2 ('inner) - for each output that fits the pattern
+
+          if !found {
+            panic!("no matching output for sat {sat}");
+          }
+
+          tprintln!("| finished with sat {sat}");
+        } // loop 1 ('outer) - for each start sat and 2 byte pattern
         tprintln!("that's all the sats");
+
+        if !allow_bad_ranges && remaining_sats != 0 {
+          panic!("didn't find all the sats");
+        }
+
         result.reverse();
       } else {
+        // no utxo index - scan the whole OUTPOINT_TO_SAT_RANGES table
         for range in outpoint_to_sat_ranges.range::<&[u8; 36]>(&[0; 36]..)? {
           let (key, value) = range?;
           let mut offset = 0;
@@ -1822,7 +1844,7 @@ mod tests {
     assert_eq!(
       context
         .index
-        .find(Sat(0), Sat(1), &Vec::new())
+        .find(Sat(0), Sat(1), &Vec::new(), false)
         .unwrap()
         .unwrap(),
       vec![FindRangeOutput {
@@ -1844,7 +1866,7 @@ mod tests {
     assert_eq!(
       context
         .index
-        .find(Sat(1), Sat(2), &Vec::new())
+        .find(Sat(1), Sat(2), &Vec::new(), false)
         .unwrap()
         .unwrap(),
       vec![FindRangeOutput {
@@ -1867,7 +1889,7 @@ mod tests {
     assert_eq!(
       context
         .index
-        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new())
+        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new(), false)
         .unwrap()
         .unwrap(),
       vec![FindRangeOutput {
@@ -1889,7 +1911,7 @@ mod tests {
     assert_eq!(
       context
         .index
-        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new())
+        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new(), false)
         .unwrap(),
       None
     );
@@ -1908,7 +1930,7 @@ mod tests {
     assert_eq!(
       context
         .index
-        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new())
+        .find(Sat(50 * COIN_VALUE), Sat(50 * COIN_VALUE + 1), &Vec::new(), false)
         .unwrap()
         .unwrap(),
       vec![FindRangeOutput {

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[0.8.1-gm14](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm14) - 2023-08-07
+----------------------------------------------------------------------------------
+
+### Added
+- Add `--date-format` flag to `ord find`.
+
+### Changed
+- Allow `ord find` to work when part of the range hasn't been mined yet.
+
 [0.8.1-gm12](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm12) - 2023-08-06
 ----------------------------------------------------------------------------------
 
