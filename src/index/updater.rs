@@ -136,7 +136,7 @@ impl Updater {
 
         uncommitted += 1;
 
-        if uncommitted == 5000 {
+        if uncommitted == index.options.commit {
           self.commit(wtx, value_cache)?;
           value_cache = HashMap::new();
           uncommitted = 0;

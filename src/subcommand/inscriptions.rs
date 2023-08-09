@@ -24,57 +24,20 @@ pub(crate) struct Inscriptions {
 }
 
 #[derive(Serialize)]
-pub struct OutputWithSatWithAddress {
+pub struct Output {
+  #[serde(default, skip_serializing_if = "Option::is_none")]
   pub sat: Option<Sat>,
   pub number: i64,
   pub height: u64,
   pub timestamp: u32,
   pub inscription: InscriptionId,
   pub location: SatPoint,
-  pub address: Address,
-  pub amount: u64,
-  pub content_type: String,
-}
-
-#[derive(Serialize)]
-pub struct OutputWithoutSatWithAddress {
-  pub number: i64,
-  pub height: u64,
-  pub timestamp: u32,
-  pub inscription: InscriptionId,
-  pub location: SatPoint,
-  pub address: Address,
-  pub amount: u64,
-  pub content_type: String,
-}
-
-#[derive(Serialize)]
-pub struct OutputWithSat {
-  pub sat: Option<Sat>,
-  pub number: i64,
-  pub height: u64,
-  pub timestamp: u32,
-  pub inscription: InscriptionId,
-  pub location: SatPoint,
-}
-
-#[derive(Serialize)]
-pub struct OutputWithoutSat {
-  pub number: i64,
-  pub height: u64,
-  pub timestamp: u32,
-  pub inscription: InscriptionId,
-  pub location: SatPoint,
-}
-
-#[derive(Serialize)]
-pub struct OutputUnbound {
-  pub number: i64,
-  pub height: u64,
-  pub timestamp: u32,
-  pub inscription: InscriptionId,
-  pub location: SatPoint,
-  pub content_type: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub address: Option<Address>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub amount: Option<u64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub content_type: Option<String>,
 }
 
 impl Inscriptions {
@@ -120,17 +83,10 @@ impl Inscriptions {
         .unwrap()
         .to_string();
 
-      if format!("{}", location.outpoint.txid)
+      let (address, amount) = if format!("{}", location.outpoint.txid)
         == "0000000000000000000000000000000000000000000000000000000000000000"
       {
-        print_json(OutputUnbound {
-          inscription,
-          location,
-          number: entry.number,
-          height: entry.height,
-          timestamp: entry.timestamp,
-          content_type,
-        })?;
+        (None, None)
       } else {
         let output = index
           .get_transaction(location.outpoint.txid)?
@@ -139,33 +95,25 @@ impl Inscriptions {
           .into_iter()
           .nth(location.outpoint.vout.try_into().unwrap())
           .unwrap();
-        let amount = output.value;
-        let address = options.chain().address_from_script(&output.script_pubkey)?;
-        if index_has_sats {
-          print_json(OutputWithSatWithAddress {
-            sat: entry.sat,
-            inscription,
-            location,
-            number: entry.number,
-            height: entry.height,
-            timestamp: entry.timestamp,
-            address,
-            amount,
-            content_type,
-          })?;
-        } else {
-          print_json(OutputWithoutSatWithAddress {
-            inscription,
-            location,
-            number: entry.number,
-            height: entry.height,
-            timestamp: entry.timestamp,
-            address,
-            amount,
-            content_type,
-          })?;
-        }
-      }
+        (
+          Some(options.chain().address_from_script(&output.script_pubkey)?),
+          Some(output.value),
+        )
+      };
+
+      print_json(Output {
+        // WithSatWithAddress
+        sat: entry.sat,
+        inscription,
+        location,
+        number: entry.number,
+        height: entry.height,
+        timestamp: entry.timestamp,
+        address,
+        amount,
+        content_type: Some(content_type),
+      })?;
+
       return Ok(());
     }
 
@@ -189,39 +137,28 @@ impl Inscriptions {
       )?
     };
 
-    let mut output_with_sat = Vec::new();
-    let mut output_without_sat = Vec::new();
+    let mut outputs = Vec::new();
 
     for inscription in inscriptions {
       let entry = index
         .get_inscription_entry(inscription)?
         .ok_or_else(|| anyhow!("Inscription {inscription} not found"))?;
       let location = index.get_inscription_satpoint_by_id(inscription)?.unwrap();
-      if index_has_sats {
-        output_with_sat.push(OutputWithSat {
-          sat: entry.sat,
-          inscription,
-          location,
-          number: entry.number,
-          height: entry.height,
-          timestamp: entry.timestamp,
-        });
-      } else {
-        output_without_sat.push(OutputWithoutSat {
-          inscription,
-          location,
-          number: entry.number,
-          height: entry.height,
-          timestamp: entry.timestamp,
-        });
-      }
+      outputs.push(Output {
+        // WithSat
+        sat: entry.sat,
+        number: entry.number,
+        height: entry.height,
+        timestamp: entry.timestamp,
+        inscription,
+        location,
+        address: None,
+        amount: None,
+        content_type: None,
+      });
     }
 
-    if index_has_sats {
-      print_json(&output_with_sat)?;
-    } else {
-      print_json(&output_without_sat)?;
-    }
+    print_json(&outputs)?;
 
     Ok(())
   }

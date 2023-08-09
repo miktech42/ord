@@ -20,6 +20,8 @@ pub(crate) struct Options {
     help = "Use <CHAIN>."
   )]
   pub(crate) chain_argument: Chain,
+  #[clap(long, default_value = "5000", help = "Commit changes to the index file on disk every <COMMIT> blocks.")]
+  pub(crate) commit: usize,
   #[clap(long, help = "Load configuration from <CONFIG>.")]
   pub(crate) config: Option<PathBuf>,
   #[clap(long, help = "Load configuration from <CONFIG_DIR>.")]
