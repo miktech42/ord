@@ -16,6 +16,7 @@ fn find_command_returns_satpoint_for_sat() {
       address: None,
       blockhash: None,
       date: None,
+      height: None,
       name: None,
       timestamp: None,
       value: None,

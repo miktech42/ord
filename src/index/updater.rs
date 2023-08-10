@@ -34,6 +34,7 @@ pub(crate) struct Updater {
   height: u64,
   index_sats: bool,
   index_utxos: bool,
+  skip_empty_outputs: bool,
   sat_ranges_since_flush: u64,
   outputs_cached: u64,
   outputs_inserted_since_flush: u64,
@@ -71,6 +72,7 @@ impl Updater {
       height,
       index_sats: index.has_sat_index()?,
       index_utxos: index.has_utxo_index()?,
+      skip_empty_outputs: index.options.skip_empty_outputs,
       sat_ranges_since_flush: 0,
       outputs_cached: 0,
       outputs_inserted_since_flush: 0,
@@ -456,7 +458,7 @@ impl Updater {
     if self.index_sats {
       let mut sat_to_satpoint = wtx.open_table(SAT_TO_SATPOINT)?;
       let mut outpoint_to_sat_ranges = wtx.open_table(OUTPOINT_TO_SAT_RANGES)?;
-      let sat_to_outpoint = if self.index_utxos {
+      let mut sat_to_outpoint = if self.index_utxos {
         wtx.open_table(SAT_TO_OUTPOINT).ok()
       } else {
         None
@@ -484,11 +486,16 @@ impl Updater {
               self.outputs_cached += 1;
               sat_ranges
             }
-            None => outpoint_to_sat_ranges
-              .remove(&key)?
-              .ok_or_else(|| anyhow!("Could not find outpoint {} in index", input.previous_output))?
-              .value()
-              .to_vec(),
+            None => match outpoint_to_sat_ranges.remove(&key)? { // Result<Option<AccessGuard<>>> -> Option<AccessGuard<>>
+              Some(value) => value.value().to_vec(),
+              None => {
+                if index.get_outpoint_value(&input.previous_output).ok().unwrap() == 0 {
+                  tprintln!("spending non-indexed empty output {}", input.previous_output);
+                  continue;
+                }
+                panic!("Could not find outpoint {} in index", input.previous_output);
+              }
+            }
           };
 
           for chunk in sat_ranges.chunks_exact(11) {
@@ -499,6 +506,9 @@ impl Updater {
         self.index_transaction_sats(
           tx,
           *txid,
+          &mut sat_to_outpoint,
+          &mut lost_sats,
+          &mut outpoint_to_sat_ranges,
           &mut sat_to_satpoint,
           &mut input_sat_ranges,
           &mut sat_ranges_written,
@@ -514,6 +524,9 @@ impl Updater {
         self.index_transaction_sats(
           tx,
           *txid,
+          &mut sat_to_outpoint,
+          &mut lost_sats,
+          &mut outpoint_to_sat_ranges,
           &mut sat_to_satpoint,
           &mut coinbase_inputs,
           &mut sat_ranges_written,
@@ -524,52 +537,13 @@ impl Updater {
       }
 
       if !coinbase_inputs.is_empty() {
-        let mut lost_sat_ranges = outpoint_to_sat_ranges
-          .remove(&OutPoint::null().store())?
-          .map(|ranges| ranges.value().to_vec())
-          .unwrap_or_default();
-
-        if let Some(mut sat_to_outpoint) = sat_to_outpoint {
-          for (start, end) in coinbase_inputs {
-            if !Sat(start).is_common() {
-              sat_to_satpoint.insert(
-                &start,
-                &SatPoint {
-                  outpoint: OutPoint::null(),
-                  offset: lost_sats,
-                }
-                .store(),
-              )?;
-            }
-
-            sat_to_outpoint.insert(&start, &OutPoint::null().store().store())?;
-
-            lost_sat_ranges.extend_from_slice(&(start, end).store());
-
-            lost_sats += end - start;
-          }
-
-          outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
-        } else {
-          for (start, end) in coinbase_inputs {
-            if !Sat(start).is_common() {
-              sat_to_satpoint.insert(
-                &start,
-                &SatPoint {
-                  outpoint: OutPoint::null(),
-                  offset: lost_sats,
-                }
-                .store(),
-              )?;
-            }
-
-            lost_sat_ranges.extend_from_slice(&(start, end).store());
-
-            lost_sats += end - start;
-          }
-
-          outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
-        }
+        Self::mark_sats_as_lost(
+          coinbase_inputs,
+          &mut lost_sats,
+          &mut outpoint_to_sat_ranges,
+          &mut sat_to_satpoint,
+          &mut sat_to_outpoint,
+        )?;
       }
     } else {
       for (tx, txid) in block.txdata.iter().skip(1).chain(block.txdata.first()) {
@@ -597,10 +571,51 @@ impl Updater {
     Ok(())
   }
 
+  fn mark_sats_as_lost(
+    ranges: VecDeque<(u64, u64)>,
+    lost_sats: &mut u64,
+    outpoint_to_sat_ranges: &mut Table<&OutPointValue, &[u8]>,
+    sat_to_satpoint: &mut Table<u64, &SatPointValue>,
+    sat_to_outpoint: &mut Option<Table<u64, &OutPointPrefixValue>>,
+  ) -> Result {
+    let mut lost_sat_ranges = outpoint_to_sat_ranges
+      .remove(&OutPoint::null().store())?
+      .map(|ranges| ranges.value().to_vec())
+      .unwrap_or_default();
+
+    for (start, end) in ranges.clone() {
+      if !Sat(start).is_common() {
+        sat_to_satpoint.insert(
+          &start,
+          &SatPoint {
+            outpoint: OutPoint::null(),
+            offset: *lost_sats,
+          }
+          .store(),
+        )?;
+      }
+
+      if let Some(sat_to_outpoint) = sat_to_outpoint {
+        sat_to_outpoint.insert(&start, &OutPoint::null().store().store())?;
+      }
+
+      lost_sat_ranges.extend_from_slice(&(start, end).store());
+
+      *lost_sats += end - start;
+    }
+
+    outpoint_to_sat_ranges.insert(&OutPoint::null().store(), lost_sat_ranges.as_slice())?;
+
+    Ok(())
+  }
+
   fn index_transaction_sats(
     &mut self,
     tx: &Transaction,
     txid: Txid,
+    sat_to_outpoint: &mut Option<Table<u64, &OutPointPrefixValue>>,
+    lost_sats: &mut u64,
+    outpoint_to_sat_ranges: &mut Table<&OutPointValue, &[u8]>,
     sat_to_satpoint: &mut Table<u64, &SatPointValue>,
     input_sat_ranges: &mut VecDeque<(u64, u64)>,
     sat_ranges_written: &mut u64,
@@ -656,8 +671,27 @@ impl Updater {
 
       *outputs_traversed += 1;
 
-      self.range_cache.insert(outpoint.store(), sats);
-      self.outputs_inserted_since_flush += 1;
+      if sats.is_empty() && self.skip_empty_outputs {
+        tprintln!("not indexing empty output {outpoint}");
+      } else {
+        let old_value = self.range_cache.insert(outpoint.store(), sats);
+        if let Some(old_value) = old_value {
+          let mut sats = VecDeque::new();
+          for chunk in old_value.chunks_exact(11) {
+            let range: SatRange = SatRange::load(chunk.try_into().unwrap());
+            sats.push_back(range);
+          }
+
+          Self::mark_sats_as_lost(
+            sats,
+            lost_sats,
+            outpoint_to_sat_ranges,
+            sat_to_satpoint,
+            sat_to_outpoint,
+          )?;
+        }
+        self.outputs_inserted_since_flush += 1;
+      }
     }
 
     Ok(())
@@ -681,16 +715,23 @@ impl Updater {
       );
 
       let mut outpoint_to_sat_ranges = wtx.open_table(OUTPOINT_TO_SAT_RANGES)?;
-      let sat_to_outpoint = if self.index_utxos {
+      let mut sat_to_outpoint = if self.index_utxos {
         wtx.open_table(SAT_TO_OUTPOINT).ok()
       } else {
         None
       };
 
-      if let Some(mut sat_to_outpoint) = sat_to_outpoint {
-        for (outpoint, sat_range) in self.range_cache.drain() {
-          outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
+      let mut sats = VecDeque::new();
+      for (outpoint, sat_range) in self.range_cache.drain() {
+        let old_value = outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
+        if let Some(old_value) = old_value {
+          for chunk in old_value.value().chunks_exact(11) {
+            let range: SatRange = SatRange::load(chunk.try_into().unwrap());
+            sats.push_back(range);
+          }
+        }
 
+        if let Some(sat_to_outpoint) = sat_to_outpoint.as_mut() {
           for chunk in sat_range.as_slice().chunks_exact(11) {
             sat_to_outpoint.insert(
               &SatRange::load(chunk.try_into().unwrap()).0,
@@ -698,11 +739,27 @@ impl Updater {
             )?;
           }
         }
-      } else {
-        for (outpoint, sat_range) in self.range_cache.drain() {
-          outpoint_to_sat_ranges.insert(&outpoint, sat_range.as_slice())?;
-        }
       }
+
+      if !sats.is_empty() {
+        let mut statistic_to_count = wtx.open_table(STATISTIC_TO_COUNT)?;
+        let mut lost_sats = statistic_to_count
+          .get(&Statistic::LostSats.key())?
+          .map(|lost_sats| lost_sats.value())
+          .unwrap_or(0);
+        let mut sat_to_satpoint = wtx.open_table(SAT_TO_SATPOINT)?;
+
+        Self::mark_sats_as_lost(
+          sats,
+          &mut lost_sats,
+          &mut outpoint_to_sat_ranges,
+          &mut sat_to_satpoint,
+          &mut sat_to_outpoint,
+        )?;
+
+        statistic_to_count.insert(&Statistic::LostSats.key(), &lost_sats)?;
+      }
+
       self.outputs_inserted_since_flush = 0;
     }
 

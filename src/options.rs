@@ -20,7 +20,11 @@ pub(crate) struct Options {
     help = "Use <CHAIN>."
   )]
   pub(crate) chain_argument: Chain,
-  #[clap(long, default_value = "5000", help = "Commit changes to the index file on disk every <COMMIT> blocks.")]
+  #[clap(
+    long,
+    default_value = "5000",
+    help = "Commit changes to the index file on disk every <COMMIT> blocks."
+  )]
   pub(crate) commit: usize,
   #[clap(long, help = "Load configuration from <CONFIG>.")]
   pub(crate) config: Option<PathBuf>,
@@ -62,6 +66,8 @@ pub(crate) struct Options {
   pub(crate) rpc_url: Option<String>,
   #[clap(long, short, help = "Use signet. Equivalent to `--chain signet`.")]
   pub(crate) signet: bool,
+  #[clap(long, help = "Don't index any zero-sat outputs. This is new and experimental and may break your index file.")]
+  pub(crate) skip_empty_outputs: bool,
   #[clap(long, short, help = "Use testnet. Equivalent to `--chain testnet`.")]
   pub(crate) testnet: bool,
   #[clap(long, default_value = "ord", help = "Use wallet named <WALLET>.")]
