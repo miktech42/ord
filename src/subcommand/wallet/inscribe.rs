@@ -128,6 +128,8 @@ pub(crate) struct Inscribe {
   pub(crate) cursed66: bool,
   #[clap(long, help = "Allow inscription on sats that are already inscribed.")]
   pub(crate) allow_reinscribe: bool,
+  #[clap(long, help = "Allow inscription on utxos that are already inscribed.")]
+  pub(crate) ignore_utxo_inscriptions: bool,
   #[clap(long, help = "Use the same recovery key for all inscriptions.")]
   pub(crate) single_key: bool,
 }
@@ -324,6 +326,7 @@ impl Inscribe {
         },
         self.cursed66,
         self.allow_reinscribe,
+        self.ignore_utxo_inscriptions,
         self.single_key,
       )?;
 
@@ -646,6 +649,7 @@ impl Inscribe {
     postage: Amount,
     cursed66: bool,
     allow_reinscribe: bool,
+    ignore_utxo_inscriptions: bool,
     single_key: bool,
   ) -> Result<(SatPoint, Transaction, Vec<Transaction>, Vec<TweakedKeyPair>)> {
     let satpoint = if let Some(satpoint) = satpoint {
@@ -675,10 +679,12 @@ impl Inscribe {
           return Err(anyhow!("sat at {} already inscribed", satpoint));
         }
       } else if inscribed_satpoint.outpoint == satpoint.outpoint {
-        return Err(anyhow!(
-          "utxo {} already inscribed with inscription {inscription_id} on sat {inscribed_satpoint}",
-          satpoint.outpoint,
-        ));
+        if !ignore_utxo_inscriptions {
+          return Err(anyhow!(
+            "utxo {} already inscribed with inscription {inscription_id} on sat {inscribed_satpoint}",
+            satpoint.outpoint,
+            ));
+        }
       }
     }
 
@@ -781,6 +787,7 @@ impl Inscribe {
       commit_fee_rate,
       reveal_fees,
       max_inputs,
+      ignore_utxo_inscriptions,
     )?;
 
     let mut reveal_txs = Vec::new();

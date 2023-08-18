@@ -120,6 +120,7 @@ pub struct TransactionBuilder {
   max_postage: Amount,
   current_output: usize,
   padding_outputs: usize,
+  ignore_utxo_inscriptions: bool,
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -163,6 +164,7 @@ impl TransactionBuilder {
       vec![Target::Postage],
       target_postage,
       max_postage,
+      false,
     )?
     .build_transaction()
   }
@@ -199,6 +201,7 @@ impl TransactionBuilder {
       vec![Target::Value(output_value)],
       Amount::from_sat(0),
       Amount::from_sat(0),
+      false,
     )?
     .build_transaction()
   }
@@ -213,6 +216,7 @@ impl TransactionBuilder {
     fee_rate: FeeRate,
     output_value: Vec<Amount>,
     max_inputs: Option<usize>,
+    ignore_utxo_inscriptions: bool,
   ) -> Result<Transaction> {
     for (recipient, output_value) in recipient.iter().zip(output_value.clone()) {
       let dust_value = recipient.script_pubkey().dust_value();
@@ -240,6 +244,7 @@ impl TransactionBuilder {
         .collect(),
       Amount::from_sat(0),
       Amount::from_sat(0),
+      ignore_utxo_inscriptions,
     )?
     .build_transaction()
   }
@@ -267,6 +272,7 @@ impl TransactionBuilder {
     target: Vec<Target>,
     target_postage: Amount,
     max_postage: Amount,
+    ignore_utxo_inscriptions: bool,
   ) -> Result<Self> {
     for recipient in recipient.clone() {
       if change.contains(&recipient) {
@@ -302,6 +308,7 @@ impl TransactionBuilder {
       max_postage,
       current_output: 0,
       padding_outputs: 0,
+      ignore_utxo_inscriptions,
     })
   }
 
@@ -313,17 +320,19 @@ impl TransactionBuilder {
       .script_pubkey()
       .dust_value()
       .to_sat();
-    for (inscribed_satpoint, inscription_id) in self.inscriptions.iter().rev() {
-      if self.outgoing.outpoint == inscribed_satpoint.outpoint
-        && self.outgoing.offset != inscribed_satpoint.offset
-        && (self.outgoing.offset < inscribed_satpoint.offset
-          || (self.outgoing.offset > 0 && self.outgoing.offset < dust_limit))
-      {
-        return Err(Error::UtxoContainsAdditionalInscription {
-          outgoing_satpoint: self.outgoing,
-          inscribed_satpoint: *inscribed_satpoint,
-          inscription_id: *inscription_id,
-        });
+    if !self.ignore_utxo_inscriptions {
+      for (inscribed_satpoint, inscription_id) in self.inscriptions.iter().rev() {
+        if self.outgoing.outpoint == inscribed_satpoint.outpoint
+          && self.outgoing.offset != inscribed_satpoint.offset
+          && (self.outgoing.offset < inscribed_satpoint.offset
+              || (self.outgoing.offset > 0 && self.outgoing.offset < dust_limit))
+        {
+          return Err(Error::UtxoContainsAdditionalInscription {
+            outgoing_satpoint: self.outgoing,
+            inscribed_satpoint: *inscribed_satpoint,
+            inscription_id: *inscription_id,
+          });
+        }
       }
     }
 

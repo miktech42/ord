@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.1-gm21](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm21) - 2023-08-17
+----------------------------------------------------------------------------------
+
+### Added
+- Add `--ignore-utxo-inscriptions` flag to `wallet inscribe` to allow inscribing on utxos that already contain inscriptions.
+
 [0.8.1-gm20](https://github.com/gmart7t2/ord/releases/tag/0.8.1-gm20) - 2023-08-16
 ----------------------------------------------------------------------------------
 

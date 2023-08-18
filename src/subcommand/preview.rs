@@ -101,6 +101,7 @@ impl Preview {
           csv: None,
           cursed66: false,
           allow_reinscribe: false,
+          ignore_utxo_inscriptions: false,
           single_key: false,
         },
       )),
