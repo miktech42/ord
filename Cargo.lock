@@ -2000,7 +2000,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "ord"
-version = "0.8.1-gm21"
+version = "0.8.1-gm23"
 dependencies = [
  "anyhow",
  "axum",
@@ -2396,9 +2396,9 @@ dependencies = [
 
 [[package]]
 name = "redb"
-version = "1.0.5"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "717a806693d0e1ed6cc55b392066bf13e703dd835acf5c5888c74740f924d355"
+checksum = "97d37f4ea12036ad04bd2a02ce385bf28e56f97344223952dccaacbf8704823e"
 dependencies = [
  "libc",
  "pyo3-build-config",

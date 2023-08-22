@@ -75,7 +75,7 @@ pub(crate) struct Inscribe {
   pub(crate) files: Vec<PathBuf>,
   #[clap(long, help = "Do not back up recovery key.")]
   pub(crate) no_backup: bool,
-  #[clap(long, help = "Do not broadcast any transactions.")]
+  #[clap(long, help = "Do not broadcast any transactions. Implies --dump.")]
   pub(crate) no_broadcast: bool,
   /*
     #[clap(
@@ -102,9 +102,15 @@ pub(crate) struct Inscribe {
   pub(crate) alignment: Option<Address<NetworkUnchecked>>,
   #[clap(long, help = "Send any change output to <CHANGE>.")]
   pub(crate) change: Option<Address<NetworkUnchecked>>,
-  #[clap(long, help = "Send the first output of any cursed reveal tx to <CURSED_DESTINATION>.")]
+  #[clap(
+    long,
+    help = "Send the first output of any cursed reveal tx to <CURSED_DESTINATION>."
+  )]
   pub(crate) cursed_destination: Option<Address<NetworkUnchecked>>,
-  #[clap(long, help = "Use <CURSED_UTXO> as the first input of any cursed reveal tx.")]
+  #[clap(
+    long,
+    help = "Use <CURSED_UTXO> as the first input of any cursed reveal tx."
+  )]
   pub(crate) cursed_utxo: Option<OutPoint>,
   #[clap(
     long,
@@ -132,10 +138,33 @@ pub(crate) struct Inscribe {
   pub(crate) ignore_utxo_inscriptions: bool,
   #[clap(long, help = "Use the same recovery key for all inscriptions.")]
   pub(crate) single_key: bool,
+  #[clap(
+    long,
+    help = "Use sighash type SinglePlusAnyoneCanPay to allow reveal txs to be RBF'ed."
+  )]
+  pub(crate) allow_reveal_rbf: bool,
+  #[clap(
+    long,
+    help = "Don't include fees in reveal txs, just the postage. Implies --no-broadcast and --allow-reveal-rbf."
+  )]
+  pub(crate) unfunded_reveal: bool,
 }
 
 impl Inscribe {
   pub(crate) fn run(self, options: Options) -> Result {
+    let mut dump = self.dump;
+    let mut no_broadcast = self.no_broadcast;
+    let mut allow_reveal_rbf = self.allow_reveal_rbf;
+
+    if self.unfunded_reveal {
+      no_broadcast = true;
+      allow_reveal_rbf = true;
+    }
+
+    if no_broadcast {
+      dump = true;
+    }
+
     let mut inscription = Vec::new();
     let mut filenames = Vec::new();
     let mut destinations = Vec::new();
@@ -302,6 +331,12 @@ impl Inscribe {
       (None, None, 0)
     };
 
+    let reveal_fee_rate = if self.unfunded_reveal {
+      FeeRate::try_from(0.0).unwrap()
+    } else {
+      self.fee_rate
+    };
+
     tprintln!("[create_inscription_transactions]");
     let (satpoint, unsigned_commit_tx, reveal_txs, mut recovery_key_pairs) =
       Inscribe::create_inscription_transactions(
@@ -317,7 +352,7 @@ impl Inscribe {
         cursed_outpoint,
         cursed_txout,
         self.commit_fee_rate.unwrap_or(self.fee_rate),
-        self.fee_rate,
+        reveal_fee_rate,
         self.max_inputs,
         self.no_limit,
         match self.postage {
@@ -328,6 +363,7 @@ impl Inscribe {
         self.allow_reinscribe,
         self.ignore_utxo_inscriptions,
         self.single_key,
+        allow_reveal_rbf,
       )?;
 
     tprintln!("[sign commit]");
@@ -442,7 +478,7 @@ impl Inscribe {
         signed_reveal_txs.push((reveal_tx, signed_reveal_tx.hex));
       }
 
-      if self.dump {
+      if dump {
         tprintln!("[dump txs]");
         let commit = signed_raw_commit_tx.raw_hex();
 
@@ -491,7 +527,7 @@ impl Inscribe {
         }
       }
 
-      if !self.no_broadcast {
+      if !no_broadcast {
         tprintln!("[broadcast txs]");
 
         // make sure before sending the commit tx that we can write to a file in the event that any of the reveals fail
@@ -603,12 +639,15 @@ impl Inscribe {
     tprintln!("  with {} inputs", tx.input.len());
     let mut sum_in = 0;
     for i in &tx.input {
+      sum_in += utxos
+        .get(&i.previous_output)
+        .unwrap_or_else(|| panic!("can't find utxo {}", i.previous_output))
+        .to_sat();
       tprintln!(
         "    value {} {}",
         utxos.get(&i.previous_output).unwrap().to_sat(),
         i.previous_output
       );
-      sum_in += utxos.get(&i.previous_output).unwrap().to_sat()
     }
     tprintln!("      total: {}", sum_in);
     tprintln!("  and {} outputs:", tx.output.len());
@@ -651,6 +690,7 @@ impl Inscribe {
     allow_reinscribe: bool,
     ignore_utxo_inscriptions: bool,
     single_key: bool,
+    allow_reveal_rbf: bool,
   ) -> Result<(SatPoint, Transaction, Vec<Transaction>, Vec<TweakedKeyPair>)> {
     let satpoint = if let Some(satpoint) = satpoint {
       satpoint
@@ -678,13 +718,11 @@ impl Inscribe {
         if !allow_reinscribe {
           return Err(anyhow!("sat at {} already inscribed", satpoint));
         }
-      } else if inscribed_satpoint.outpoint == satpoint.outpoint {
-        if !ignore_utxo_inscriptions {
-          return Err(anyhow!(
-            "utxo {} already inscribed with inscription {inscription_id} on sat {inscribed_satpoint}",
-            satpoint.outpoint,
-            ));
-        }
+      } else if inscribed_satpoint.outpoint == satpoint.outpoint && !ignore_utxo_inscriptions {
+        return Err(anyhow!(
+          "utxo {} already inscribed with inscription {inscription_id} on sat {inscribed_satpoint}",
+          satpoint.outpoint,
+        ));
       }
     }
 
@@ -857,9 +895,14 @@ impl Inscribe {
       let mut sighash_cache = SighashCache::new(&mut reveal_tx);
 
       let prevouts_all_inputs = &[output];
-      let (prevouts, hash_ty) = if cursed_outpoint.is_some() {
+      let (prevouts, hash_ty) = if allow_reveal_rbf {
         (
-          Prevouts::One(1, output),
+          Prevouts::One(reveal_vout_postage, output),
+          TapSighashType::SinglePlusAnyoneCanPay,
+        )
+      } else if cursed_outpoint.is_some() {
+        (
+          Prevouts::One(reveal_vout_postage, output),
           TapSighashType::AllPlusAnyoneCanPay,
         )
       } else {
@@ -885,7 +928,7 @@ impl Inscribe {
         .witness_mut(reveal_vout_postage)
         .expect("getting mutable witness reference should work");
 
-      if cursed_outpoint.is_some() {
+      if allow_reveal_rbf || cursed_outpoint.is_some() {
         let mut signature = signature.as_ref().to_vec();
         signature.push(hash_ty as u8);
         witness.push(signature);
@@ -1046,6 +1089,8 @@ mod tests {
         false,
         false,
         false,
+        false,
+        false,
       )
       .unwrap();
 
@@ -1083,6 +1128,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
       false,
       false,
       false,
@@ -1127,6 +1174,8 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
+      false,
       false,
       false,
       false,
@@ -1181,6 +1230,8 @@ mod tests {
       false,
       false,
       false,
+      false,
+      false,
     )
     .is_ok())
   }
@@ -1224,6 +1275,8 @@ mod tests {
         None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
         false,
         false,
         false,
@@ -1301,6 +1354,8 @@ mod tests {
         false,
         false,
         false,
+        false,
+        false,
       )
       .unwrap();
 
@@ -1359,6 +1414,8 @@ mod tests {
       false,
       false,
       false,
+      false,
+      false,
     )
     .unwrap_err()
     .to_string();
@@ -1397,6 +1454,8 @@ mod tests {
         None,
         true,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
+        false,
         false,
         false,
         false,

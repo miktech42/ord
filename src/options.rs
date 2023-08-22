@@ -66,7 +66,10 @@ pub(crate) struct Options {
   pub(crate) rpc_url: Option<String>,
   #[clap(long, short, help = "Use signet. Equivalent to `--chain signet`.")]
   pub(crate) signet: bool,
-  #[clap(long, help = "Don't index any zero-sat outputs. This is new and experimental and may break your index file.")]
+  #[clap(
+    long,
+    help = "Don't index any zero-sat outputs. This is new and experimental and may break your index file."
+  )]
   pub(crate) skip_empty_outputs: bool,
   #[clap(long, short, help = "Use testnet. Equivalent to `--chain testnet`.")]
   pub(crate) testnet: bool,

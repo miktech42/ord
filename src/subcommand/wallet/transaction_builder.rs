@@ -325,7 +325,7 @@ impl TransactionBuilder {
         if self.outgoing.outpoint == inscribed_satpoint.outpoint
           && self.outgoing.offset != inscribed_satpoint.offset
           && (self.outgoing.offset < inscribed_satpoint.offset
-              || (self.outgoing.offset > 0 && self.outgoing.offset < dust_limit))
+            || (self.outgoing.offset > 0 && self.outgoing.offset < dust_limit))
         {
           return Err(Error::UtxoContainsAdditionalInscription {
             outgoing_satpoint: self.outgoing,
@@ -952,6 +952,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1001,6 +1002,7 @@ mod tests {
       max_postage: TransactionBuilder::DEFAULT_MAX_POSTAGE,
       current_output: 0,
       padding_outputs: 0,
+      ignore_utxo_inscriptions: false,
     };
 
     pretty_assert_eq!(
@@ -1081,6 +1083,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1217,6 +1220,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .build()
@@ -1240,6 +1244,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .build()
@@ -1263,6 +1268,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .build()
@@ -1286,6 +1292,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1316,6 +1323,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1375,6 +1383,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1455,6 +1464,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1487,6 +1497,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1517,6 +1528,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1544,6 +1556,7 @@ mod tests {
       vec![Target::Postage],
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
       TransactionBuilder::DEFAULT_MAX_POSTAGE,
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -1583,6 +1596,7 @@ mod tests {
       max_postage: TransactionBuilder::DEFAULT_MAX_POSTAGE,
       current_output: 0,
       padding_outputs: 0,
+      ignore_utxo_inscriptions: false,
     }
     .build()
     .unwrap();
@@ -1618,6 +1632,7 @@ mod tests {
       max_postage: TransactionBuilder::DEFAULT_MAX_POSTAGE,
       current_output: 0,
       padding_outputs: 0,
+      ignore_utxo_inscriptions: false,
     }
     .build()
     .unwrap();
@@ -2061,6 +2076,7 @@ mod tests {
       vec![Target::Value(Amount::from_sat(10_000))],
       Amount::from_sat(0),
       Amount::from_sat(0),
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -2110,6 +2126,7 @@ mod tests {
       vec![Target::Value(Amount::from_sat(10_000))],
       Amount::from_sat(0),
       Amount::from_sat(0),
+      false,
     )
     .unwrap()
     .select_outgoing()
@@ -2166,6 +2183,7 @@ mod tests {
       vec![Target::Value(Amount::from_sat(10_000))],
       Amount::from_sat(0),
       Amount::from_sat(0),
+      false,
     )
     .unwrap();
 

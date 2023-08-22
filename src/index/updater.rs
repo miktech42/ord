@@ -486,16 +486,25 @@ impl Updater {
               self.outputs_cached += 1;
               sat_ranges
             }
-            None => match outpoint_to_sat_ranges.remove(&key)? { // Result<Option<AccessGuard<>>> -> Option<AccessGuard<>>
+            None => match outpoint_to_sat_ranges.remove(&key)? {
+              // Result<Option<AccessGuard<>>> -> Option<AccessGuard<>>
               Some(value) => value.value().to_vec(),
               None => {
-                if index.get_outpoint_value(&input.previous_output).ok().unwrap() == 0 {
-                  tprintln!("spending non-indexed empty output {}", input.previous_output);
+                if index
+                  .get_outpoint_value(&input.previous_output)
+                  .ok()
+                  .unwrap()
+                  == 0
+                {
+                  tprintln!(
+                    "spending non-indexed empty output {}",
+                    input.previous_output
+                  );
                   continue;
                 }
                 panic!("Could not find outpoint {} in index", input.previous_output);
               }
-            }
+            },
           };
 
           for chunk in sat_ranges.chunks_exact(11) {

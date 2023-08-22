@@ -103,6 +103,8 @@ impl Preview {
           allow_reinscribe: false,
           ignore_utxo_inscriptions: false,
           single_key: false,
+          allow_reveal_rbf: false,
+          unfunded_reveal: false,
         },
       )),
     }
