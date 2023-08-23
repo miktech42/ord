@@ -38,7 +38,10 @@ use {
     blockdata::{locktime::absolute::LockTime, witness::Witness},
     Amount, ScriptBuf,
   },
-  std::collections::{BTreeMap, BTreeSet},
+  std::{
+    cmp::{max, min},
+    collections::{BTreeMap, BTreeSet},
+  },
 };
 
 #[derive(Debug, PartialEq)]
@@ -390,6 +393,7 @@ impl TransactionBuilder {
     );
 
     let sat_offset = self.calculate_sat_offset();
+
     if sat_offset == 0 {
       tprintln!("outgoing is aligned");
     } else {
@@ -431,13 +435,16 @@ impl TransactionBuilder {
         .unwrap()
         .script_pubkey()
         .dust_value();
+
       if self.outputs[0].1 >= dust_limit {
         tprintln!("no padding needed");
       } else {
         while self.outputs[0].1 < dust_limit {
-          let (utxo, size) = self.select_cardinal_utxo(dust_limit - self.outputs[0].1, true)?; // prefer smaller utxos to tidy dust outputs
+          let (utxo, size) = self.select_cardinal_utxo(dust_limit - self.outputs[0].1, true)?;
+
           self.inputs.insert(0, utxo);
           self.outputs[0].1 += size;
+
           tprintln!(
             "padded alignment output to {} with additional {size} sat input",
             self.outputs[0].1
@@ -483,11 +490,15 @@ impl TransactionBuilder {
         let needed = deficit
           .checked_add(additional_fee)
           .ok_or(Error::ValueOverflow)?;
-        let (utxo, value) = self.select_cardinal_utxo(needed, false)?; // prefer utxos that fill the needed amount
+
+        let (utxo, value) = self.select_cardinal_utxo(needed, false)?;
+
         let benefit = value
           .checked_sub(additional_fee)
           .ok_or(Error::NotEnoughCardinalUtxos)?;
+
         self.inputs.push(utxo);
+
         let mut available = value;
 
         while self.current_output < self.recipient.len() {
@@ -861,14 +872,15 @@ impl TransactionBuilder {
     panic!("Could not find outgoing sat in inputs");
   }
 
+  /// Cardinal UTXOs are those that contain no inscriptions and can therefore
+  /// be used to pad transactions. Sometimes multiple of these UTXOs are needed
+  /// and depending on the context we want to select either ones above or
+  /// under (when trying to consolidate dust outputs) the target value.
   fn select_cardinal_utxo(
     &mut self,
     target_value: Amount,
     prefer_under: bool,
   ) -> Result<(OutPoint, Amount)> {
-    let mut found = None;
-    let mut best = Amount::ZERO;
-
     if self.max_inputs.is_some() && self.inputs.len() == self.max_inputs.unwrap() {
       return Err(Error::TooManyInputs(self.max_inputs.unwrap()));
     }
@@ -884,42 +896,43 @@ impl TransactionBuilder {
       .map(|satpoint| satpoint.outpoint)
       .collect::<BTreeSet<OutPoint>>();
 
+    let mut best_match = None;
     for utxo in &self.utxos {
       if inscribed_utxos.contains(utxo) {
         continue;
       }
 
-      let value = self.amounts[utxo];
+      let current_value = self.amounts[utxo];
 
-      if prefer_under {
-        // prefer an output smaller than the target over one bigger than it
-        if best == Amount::ZERO {
-          found = Some((*utxo, value));
-          best = value;
-        } else if best <= target_value {
-          if value <= target_value && value > best {
-            found = Some((*utxo, value));
-            best = value;
-          }
-        } else if value <= target_value || value < best {
-          found = Some((*utxo, value));
-          best = value;
+      let (_, best_value) = match best_match {
+        Some(prev) => prev,
+        None => {
+          best_match = Some((*utxo, current_value));
+          (*utxo, current_value)
         }
+      };
+
+      let abs_diff = |a: Amount, b: Amount| -> Amount { max(a, b) - min(a, b) };
+      let is_closer = abs_diff(current_value, target_value) < abs_diff(best_value, target_value);
+
+      let not_preference_but_closer = if prefer_under {
+        best_value > target_value && is_closer
       } else {
-        // prefer an output bigger than the target over one smaller than it
-        if best >= target_value {
-          if value >= target_value && value < best {
-            found = Some((*utxo, value));
-            best = value;
-          }
-        } else if value >= target_value || value > best {
-          found = Some((*utxo, value));
-          best = value;
-        }
+        best_value < target_value && is_closer
+      };
+
+      let is_preference_and_closer = if prefer_under {
+        current_value <= target_value && is_closer
+      } else {
+        current_value >= target_value && is_closer
+      };
+
+      if is_preference_and_closer || not_preference_but_closer {
+        best_match = Some((*utxo, current_value))
       }
     }
 
-    let (utxo, value) = found.ok_or(Error::NotEnoughCardinalUtxos)?;
+    let (utxo, value) = best_match.ok_or(Error::NotEnoughCardinalUtxos)?;
 
     self.utxos.remove(&utxo);
     tprintln!("found cardinal worth {}", value);

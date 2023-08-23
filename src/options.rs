@@ -77,6 +77,8 @@ pub(crate) struct Options {
   pub(crate) wallet: String,
   #[clap(long, help = "Don't check for standard wallet descriptors.")]
   pub(crate) ignore_descriptors: bool,
+  #[clap(long, short, help = "Enable JSON API.")]
+  pub(crate) enable_json_api: bool,
 }
 
 impl Options {
