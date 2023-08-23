@@ -86,7 +86,7 @@ impl Entry for InscriptionId {
   }
 }
 
-pub const PREFIX_BYTES: usize = 3;
+pub const PREFIX_BYTES: usize = 4;
 pub const OUTPOINT_BYTES: usize = 32 + 4;
 pub type OutPointPrefix = [u8; OUTPOINT_BYTES];
 pub(super) type OutPointPrefixValue = [u8; PREFIX_BYTES];

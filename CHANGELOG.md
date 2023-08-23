@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.2-gm2](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm2) - 2023-08-23
+---------------------------------------------------------------------------------
+
+### Changed
+-- Store 4 bytes per outpoint not 3, to reduce the number of collisions.
+
 [0.8.2-gm1](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm1) - 2023-08-22
 ---------------------------------------------------------------------------------
 
