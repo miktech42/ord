@@ -79,6 +79,7 @@ pub(crate) enum Statistic {
   OutputsTraversed = 3,
   SatRanges = 4,
   UnboundInscriptions = 5,
+  LastSavePointHeight = 6,
 }
 
 impl Statistic {
@@ -313,9 +314,13 @@ impl Index {
     let outpoint_to_value = rtx.open_table(OUTPOINT_TO_VALUE)?;
     for outpoint in utxos.keys() {
       if outpoint_to_value.get(&outpoint.store())?.is_none() {
-        return Err(anyhow!(
-          "output in Bitcoin Core wallet but not in ord index: {outpoint}"
-        ));
+        if self.options.allow_missing_outputs {
+          eprintln!("output in Bitcoin Core wallet but not in ord index: {outpoint}");
+        } else {
+          return Err(anyhow!(
+            "output in Bitcoin Core wallet but not in ord index: {outpoint}"
+          ));
+        }
       }
     }
 
@@ -1149,9 +1154,20 @@ impl Index {
     &self,
     utxos: BTreeMap<OutPoint, Amount>,
   ) -> Result<BTreeMap<SatPoint, InscriptionId>> {
+    let mut result = BTreeMap::new();
+
+    result.extend(self.get_inscriptions_vector(utxos)?.into_iter());
+
+    Ok(result)
+  }
+
+  pub(crate) fn get_inscriptions_vector(
+    &self,
+    utxos: BTreeMap<OutPoint, Amount>,
+  ) -> Result<Vec<(SatPoint, InscriptionId)>> {
     let rtx = self.database.begin_read()?;
 
-    let mut result = BTreeMap::new();
+    let mut result = Vec::new();
 
     let table = rtx.open_multimap_table(SATPOINT_TO_INSCRIPTION_ID)?;
     for utxo in utxos.keys() {

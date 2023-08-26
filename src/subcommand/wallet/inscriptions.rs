@@ -21,7 +21,7 @@ pub struct OutputWithoutSat {
 
 #[derive(Debug, Parser)]
 pub(crate) struct Inscriptions {
-  #[clap(long, help = "Send any change output to <CHANGE>.")]
+  #[clap(long, help = "Only show inscriptions owned by <ADDRESS>.")]
   address: Option<Address<NetworkUnchecked>>,
 }
 
@@ -33,7 +33,7 @@ impl Inscriptions {
     let index_has_sats = index.has_sat_index()?;
 
     let unspent_outputs = index.get_unspent_outputs(Wallet::load(&options)?)?;
-    let inscriptions = index.get_inscriptions(unspent_outputs.clone())?;
+    let inscriptions = index.get_inscriptions_vector(unspent_outputs.clone())?;
 
     let explorer = match options.chain() {
       Chain::Mainnet => "https://ordinals.com/inscription/",

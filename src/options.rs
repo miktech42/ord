@@ -79,6 +79,8 @@ pub(crate) struct Options {
   pub(crate) ignore_descriptors: bool,
   #[clap(long, short, help = "Enable JSON API.")]
   pub(crate) enable_json_api: bool,
+  #[clap(long, help = "Don't fail when outputs are missing from the ord index.")]
+  pub(crate) allow_missing_outputs: bool,
 }
 
 impl Options {

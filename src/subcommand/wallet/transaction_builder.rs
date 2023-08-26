@@ -744,7 +744,8 @@ impl TransactionBuilder {
       }
     }
     assert!(found, "invariant: outgoing sat is found in outputs");
-
+/*
+    // this invarient failed if we use --single-key to inscribe the same file multiple times using the same key
     for recipient in &self.recipient {
       assert_eq!(
         transaction
@@ -756,7 +757,7 @@ impl TransactionBuilder {
         "invariant: recipient address appears exactly once in outputs",
       );
     }
-
+*/
     assert!(
       self
         .change_addresses

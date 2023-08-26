@@ -240,6 +240,7 @@ impl Server {
         .route("/inscriptions", get(Self::inscriptions))
         .route("/inscriptions/block/:n", get(Self::inscriptions_in_block))
         .route("/inscriptions/:from", get(Self::inscriptions_from))
+        .route("/inscriptions/:from/:n", get(Self::inscriptions_from_n))
         .route(
           "/inscriptions_json/:start",
           get(Self::inscriptions_json_start),
@@ -248,7 +249,6 @@ impl Server {
           "/inscriptions_json/:start/:end",
           get(Self::inscriptions_json_start_end),
         )
-        .route("/inscriptions/:from/:n", get(Self::inscriptions_from_n))
         .route("/install.sh", get(Self::install_script))
         .route("/ordinal/:sat", get(Self::ordinal))
         .route("/output/:output", get(Self::output))
@@ -1163,6 +1163,7 @@ impl Server {
     Path(block_height): Path<u64>,
     accept_json: AcceptJson,
   ) -> ServerResult<Response> {
+    log::info!("GET /inscriptions/block/{block_height}");
     let inscriptions = index
       .get_inscriptions_in_block(&block_index_state.block_index.read().unwrap(), block_height)?;
     Ok(if accept_json.0 {
@@ -1194,6 +1195,7 @@ impl Server {
     Path((from, n)): Path<(i64, usize)>,
     accept_json: AcceptJson,
   ) -> ServerResult<Response> {
+    log::info!("GET /inscriptions/{from}/{n}");
     Self::inscriptions_inner(page_config, index, Some(from), n, accept_json).await
   }
 
