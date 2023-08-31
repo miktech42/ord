@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.2-gm5](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm5) - 2023-08-31
+--------------------------------------------------------------------------------
+
+### Added
+-- Add `--no-signature` flag to `wallet inscribe`. It leaves the reveal transaction unsigned, making it smaller, cheaper, and trivially easy to steal. Do not use!
+
 [0.8.2-gm4](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm4) - 2023-08-25
 --------------------------------------------------------------------------------
 

@@ -100,6 +100,7 @@ impl Preview {
           max_inputs: None,
           csv: None,
           cursed66: false,
+          no_signature: false,
           allow_reinscribe: false,
           ignore_utxo_inscriptions: false,
           single_key: false,

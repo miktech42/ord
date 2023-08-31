@@ -132,6 +132,8 @@ pub(crate) struct Inscribe {
     help = "Create a 'cursed' inscription (with an unknown even OP_66 tag)"
   )]
   pub(crate) cursed66: bool,
+  #[clap(long, help = "Don't sign the reveal tx. This lowers the miner fees but allows anyone to steal your inscription.")]
+  pub(crate) no_signature: bool,
   #[clap(long, help = "Allow inscription on sats that are already inscribed.")]
   pub(crate) allow_reinscribe: bool,
   #[clap(long, help = "Allow inscription on utxos that are already inscribed.")]
@@ -360,6 +362,7 @@ impl Inscribe {
           _ => TransactionBuilder::DEFAULT_TARGET_POSTAGE,
         },
         self.cursed66,
+        self.no_signature,
         self.allow_reinscribe,
         self.ignore_utxo_inscriptions,
         self.single_key,
@@ -687,6 +690,7 @@ impl Inscribe {
     no_limit: bool,
     postage: Amount,
     cursed66: bool,
+    no_signature: bool,
     allow_reinscribe: bool,
     ignore_utxo_inscriptions: bool,
     single_key: bool,
@@ -752,11 +756,14 @@ impl Inscribe {
       }
       key_pairs.push(key_pair);
 
+      let mut builder = ScriptBuf::builder();
+      if !no_signature {
+        builder = builder.push_slice(public_key.serialize()).push_opcode(opcodes::all::OP_CHECKSIG);
+      }
       let reveal_script = inscription.append_reveal_script(
-        ScriptBuf::builder()
-          .push_slice(public_key.serialize())
-          .push_opcode(opcodes::all::OP_CHECKSIG),
+        builder,
         cursed66,
+        no_signature,
       );
 
       let taproot_spend_info = TaprootBuilder::new()
@@ -803,6 +810,7 @@ impl Inscribe {
         inputs,
         outputs,
         &reveal_script,
+        no_signature,
       );
       reveal_scripts.push(reveal_script);
       control_blocks.push(control_block);
@@ -876,6 +884,7 @@ impl Inscribe {
         inputs,
         outputs,
         reveal_script,
+        no_signature,
       );
 
       reveal_tx.output[reveal_vout_postage].value = reveal_tx.output[reveal_vout_postage]
@@ -928,12 +937,14 @@ impl Inscribe {
         .witness_mut(reveal_vout_postage)
         .expect("getting mutable witness reference should work");
 
-      if allow_reveal_rbf || cursed_outpoint.is_some() {
-        let mut signature = signature.as_ref().to_vec();
-        signature.push(hash_ty as u8);
-        witness.push(signature);
-      } else {
-        witness.push(signature.as_ref());
+      if !no_signature {
+        if allow_reveal_rbf || cursed_outpoint.is_some() {
+          let mut signature = signature.as_ref().to_vec();
+          signature.push(hash_ty as u8);
+          witness.push(signature);
+        } else {
+          witness.push(signature.as_ref());
+        }
       }
 
       witness.push(reveal_script);
@@ -1016,6 +1027,7 @@ impl Inscribe {
     inputs: Vec<OutPoint>,
     outputs: Vec<TxOut>,
     script: &Script,
+    no_signature: bool,
   ) -> (Transaction, Amount) {
     let reveal_tx = Transaction {
       input: inputs
@@ -1038,11 +1050,13 @@ impl Inscribe {
       for (current_index, txin) in reveal_tx.input.iter_mut().enumerate() {
         // add dummy inscription witness for reveal input/commit output
         if current_index == reveal_vout_postage {
+          if !no_signature {
           txin.witness.push(
             Signature::from_slice(&[0; SCHNORR_SIGNATURE_SIZE])
               .unwrap()
               .as_ref(),
           );
+          }
           txin.witness.push(script);
           txin.witness.push(&control_block.serialize());
         } else {
@@ -1091,6 +1105,7 @@ mod tests {
         false,
         false,
         false,
+        false,
       )
       .unwrap();
 
@@ -1128,6 +1143,7 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
       false,
       false,
       false,
@@ -1174,6 +1190,7 @@ mod tests {
       None,
       false,
       TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+      false,
       false,
       false,
       false,
@@ -1232,6 +1249,7 @@ mod tests {
       false,
       false,
       false,
+      false,
     )
     .is_ok())
   }
@@ -1275,6 +1293,7 @@ mod tests {
         None,
         false,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
         false,
         false,
         false,
@@ -1356,6 +1375,7 @@ mod tests {
         false,
         false,
         false,
+        false,
       )
       .unwrap();
 
@@ -1416,6 +1436,7 @@ mod tests {
       false,
       false,
       false,
+      false,
     )
     .unwrap_err()
     .to_string();
@@ -1454,6 +1475,7 @@ mod tests {
         None,
         true,
         TransactionBuilder::DEFAULT_TARGET_POSTAGE,
+        false,
         false,
         false,
         false,
