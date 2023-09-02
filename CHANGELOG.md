@@ -1,6 +1,12 @@
 Changelog
 =========
 
+[0.8.2-gm6](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm6) - 2023-08-31
+--------------------------------------------------------------------------------
+
+### Added
+-- Add `--wait-after-commit` flag to `wallet inscribe`. This causes the reveal transactions not to be broadcast until the commit transaction has been confirmed. Use in conjunction with `--dump` to make sure you have a copy of the reveal transactions to prevent loss of funds in the event that the ord command gets interrupted before the commit transaction confirms.
+
 [0.8.2-gm5](https://github.com/gmart7t2/ord/releases/tag/0.8.2-gm5) - 2023-08-31
 --------------------------------------------------------------------------------
 

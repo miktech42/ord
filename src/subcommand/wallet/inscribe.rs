@@ -21,7 +21,7 @@ use {
   std::fs::File,
   std::io::Write,
   std::io::{BufRead, BufReader},
-  // std::{thread, time},
+  std::{thread, time},
 };
 
 #[derive(Deserialize)]
@@ -77,13 +77,11 @@ pub(crate) struct Inscribe {
   pub(crate) no_backup: bool,
   #[clap(long, help = "Do not broadcast any transactions. Implies --dump.")]
   pub(crate) no_broadcast: bool,
-  /*
-    #[clap(
-      long,
-      help = "Wait for the commit tx to confirm before sending reveal txs."
-    )]
-    pub(crate) wait_after_commit: bool,
-  */
+  #[clap(
+    long,
+    help = "Wait for the commit tx to confirm before sending reveal txs. Be careful; if the `ord wallet inscribe` command gets interrupted before the commit tx confirms, the corresponding reveal txs won't be sent, possibly resulting in loss of funds. Use `--dump` to write the reveal transactions to standard output to prevent such loss."
+  )]
+  pub(crate) wait_after_commit: bool,
   #[clap(
     long,
     help = "Do not check that transactions are equal to or below the MAX_STANDARD_TX_WEIGHT of 400,000 weight units. Transactions over this limit are currently nonstandard and will not be relayed by bitcoind in its default configuration. Do not use this flag unless you understand the implications."
@@ -550,49 +548,48 @@ impl Inscribe {
         let commit = client
           .send_raw_transaction(&signed_raw_commit_tx)
           .context("Failed to send commit transaction")?;
-        /*
-                if self.wait_after_commit {
-                  let mut failed = false;
-                  drop(index);
-                  eprint!("[waiting for commit transaction {} to confirm] ", commit);
-                  io::stdout().flush()?;
-                  drop(client);
-                  loop {
-                    thread::sleep(time::Duration::from_secs(60));
-                    match options.bitcoin_rpc_client_for_wallet_command(false) {
-                      Ok(client) => {
-                        if failed {
-                          eprintln!("[reconnected]");
-                          failed = false;
-                        }
 
-                        match client.get_transaction(&commit, Some(false)) {
-                          Ok(tx) => {
-                            if tx.info.confirmations > 0 {
-                              eprintln!();
-                              eprintln!("[confirmed]");
-                              break;
-                            }
-                            eprint!(".");
-                          }
-                          Err(error) => {
-                            eprintln!();
-                            eprintln!("[error: {:?}]", error);
-                            eprintln!("[trying to reconnect to bitcoin client]");
-                            failed = true;
-                          }
-                        }
-                      }
-                      Err(error) => {
-                        eprintln!();
-                        eprintln!("[failed to connect to bitcoin client: {:?}]", error);
-                        failed = true;
-                        thread::sleep(time::Duration::from_secs(60));
-                      }
+        if self.wait_after_commit {
+          let mut failed = false;
+          drop(index);
+          eprint!("[waiting for commit transaction {} to confirm] ", commit);
+          io::stdout().flush()?;
+          drop(client);
+          loop {
+            thread::sleep(time::Duration::from_secs(60));
+            match options.bitcoin_rpc_client_for_wallet_command(false) {
+              Ok(client) => {
+                if failed {
+                  eprintln!("[reconnected]");
+                  failed = false;
+                }
+
+                match client.get_transaction(&commit, Some(false)) {
+                  Ok(tx) => {
+                    if tx.info.confirmations > 0 {
+                      eprintln!();
+                      eprintln!("[confirmed]");
+                      break;
                     }
+                    eprint!(".");
+                  }
+                  Err(error) => {
+                    eprintln!();
+                    eprintln!("[error: {:?}]", error);
+                    eprintln!("[trying to reconnect to bitcoin client]");
+                    failed = true;
                   }
                 }
-        */
+              }
+              Err(error) => {
+                eprintln!();
+                eprintln!("[failed to connect to bitcoin client: {:?}]", error);
+                failed = true;
+                thread::sleep(time::Duration::from_secs(60));
+              }
+            }
+          }
+        }
 
         let mut file = file?;
         client = options.bitcoin_rpc_client_for_wallet_command(false)?;

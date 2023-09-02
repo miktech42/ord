@@ -84,6 +84,7 @@ impl Preview {
           files: self.inscriptions,
           no_backup: true,
           no_broadcast: false,
+          wait_after_commit: false,
           satpoint: None,
           utxo: Vec::new(),
           coin_control: false,
